@@ -1,0 +1,25 @@
+INICIO DEL PROYECTO
+===================
+
+//CREAMOS CARPETAS
+mkdir backend frontend
+
+//INICIAMOS PROYECTO
+cd backend
+npm init -y
+
+
+//INSTALAMOS PAQUETES
+npm install fastify dotenv axios
+npm install -D typescript ts-node-dev @types/node
+
+npx tsc --init
+
+//INSTALAMOS frontend
+cd ../frontend
+npm create vite@latest . -- --template react
+npm install
+npm run dev
+
+//CORRER APP
+npm run dev
