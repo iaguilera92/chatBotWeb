@@ -4,7 +4,7 @@ INICIO DEL PROYECTO
 //CREAMOS CARPETAS
 mkdir backend frontend
 
-//INICIAMOS PROYECTO
+//INICIAMOS BACKEND NOTE.JS
 cd backend
 npm init -y
 
@@ -21,5 +21,6 @@ npm create vite@latest . -- --template react
 npm install
 npm run dev
 
-//CORRER APP
+//CORRER APP - Se creo package.json en la raiz (concurrently) permite ejecutar back/front
+npm install
 npm run dev
