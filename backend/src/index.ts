@@ -1,22 +1,17 @@
+import "./env";
 import Fastify from "fastify";
-import dotenv from "dotenv";
 import cors from "@fastify/cors";
+import { chatRoutes } from "./routes/chat";
 import { whatsappWebhook } from "./webhook";
-
-dotenv.config();
 
 async function startServer() {
     const app = Fastify({ logger: true });
 
-    // ✅ CORS
-    await app.register(cors, {
-        origin: "*"
-    });
+    await app.register(cors, { origin: "*" });
 
-    // Webhook WhatsApp
     whatsappWebhook(app);
+    await chatRoutes(app);
 
-    // Health check
     app.get("/health", async () => ({ status: "ok" }));
 
     const port = Number(process.env.PORT) || 3000;

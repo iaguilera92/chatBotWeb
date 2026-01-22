@@ -24,3 +24,9 @@ npm run dev
 //CORRER APP - Se creo package.json en la raiz (concurrently) permite ejecutar back/front
 npm install
 npm run dev
+
+//BACKEND
+Fastify Creador de APIs escalable con Node.js
+
+//CORREO
+pwbot.ia@gmail.com

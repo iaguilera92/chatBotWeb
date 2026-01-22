@@ -3,61 +3,137 @@ import { useTenant } from "../context/TenantContext";
 import { useState } from "react";
 import ChatContainer from "../components/chat/ChatContainer";
 import ChatInput from "../components/chat/ChatInput";
+import emailjs from "@emailjs/browser";
+
+emailjs.init("BJsyiI89dERTgGOZ2");
 
 export default function Chat() {
     const tenant = useTenant();
     const [isTyping, setIsTyping] = useState(false);
+    const [lead, setLead] = useState({
+        offer: null,
+        email: null,
+        business: null,
+        sent: false,
+    });
+    const isEmail = (text) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+
+    const sendLeadEmail = ({ offer, email, business }) => {
+        emailjs.send(
+            "service_afi4p3g",
+            "template_q2qi8vq",
+            {
+                business_name: business,
+                user_email: email,
+                offer,
+            }
+        )
+            .then(() => {
+                console.log("✅ Lead enviado");
+            })
+            .catch((err) => {
+                console.error("❌ Error EmailJS", err);
+            });
+    };
 
     const [messages, setMessages] = useState([
         { from: "bot", text: tenant.welcomeMessage }
     ]);
 
-    const handleSend = (text) => {
-        const now = new Date();
-
+    const handleSend = async (text) => {
         const userMessage = {
             from: "user",
             text,
-            status: "sent",
-            timestamp: now
+            timestamp: new Date(),
         };
 
-        setMessages((prev) => [...prev, userMessage]);
+        // 🧠 Detectar selección de oferta
+        if (/oferta\s*1|la\s*1|opción\s*1/i.test(text)) {
+            setLead((prev) => ({ ...prev, offer: "Oferta 1 - Pago único" }));
+        }
 
-        // ✓ entregado
-        setTimeout(() => {
-            setMessages((prev) =>
-                prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, status: "delivered" } : m
-                )
-            );
-        }, 300);
+        if (/oferta\s*2|la\s*2|opción\s*2/i.test(text)) {
+            setLead((prev) => ({ ...prev, offer: "Oferta 2 - Suscripción mensual" }));
+        }
 
-        // ✓✓ visto
-        setTimeout(() => {
-            setMessages((prev) =>
-                prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, status: "seen" } : m
-                )
-            );
-        }, 700);
+        // 📧 Detectar correo electrónico
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+            setLead((prev) => ({ ...prev, email: text }));
+        }
 
-        // Bot escribiendo…
-        setTimeout(() => setIsTyping(true), 500);
+        // 🏷️ Detectar nombre del negocio (después del correo)
+        if (lead.email && !lead.business && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+            setLead((prev) => ({ ...prev, business: text }));
+        }
 
-        // Respuesta bot
-        setTimeout(() => {
+        // 🚀 Enviar EmailJS cuando esté todo listo
+        if (
+            lead.offer &&
+            lead.email &&
+            lead.business &&
+            !lead.sent
+        ) {
+            emailjs.send(
+                "service_afi4p3g",
+                "template_q2qi8vq",
+                {
+                    business_name: lead.business,
+                    user_email: lead.email,
+                    offer: lead.offer,
+                },
+                "BJsyiI89dERTgGOZ2"
+            )
+                .then(() => {
+                    console.log("✅ Lead enviado a EmailJS");
+                })
+                .catch((err) => {
+                    console.error("❌ Error enviando EmailJS", err);
+                });
+
+            setLead((prev) => ({ ...prev, sent: true }));
+        }
+
+        // 🔑 Construir historial actualizado
+        const updatedMessages = [...messages, userMessage];
+
+        // Actualizar UI
+        setMessages(updatedMessages);
+        setIsTyping(true);
+
+        try {
+            const res = await fetch("http://localhost:3000/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    messages: updatedMessages,
+                }),
+            });
+
+            const data = await res.json();
+
             setIsTyping(false);
             setMessages((prev) => [
                 ...prev,
                 {
                     from: "bot",
-                    text: "Mensaje recibido ✔️",
-                    timestamp: new Date()
-                }
+                    text: data.reply,
+                    timestamp: new Date(),
+                },
             ]);
-        }, 1400);
+        } catch (e) {
+            setIsTyping(false);
+            setMessages((prev) => [
+                ...prev,
+                {
+                    from: "bot",
+                    text: "⚠️ Error al contactar la IA",
+                    timestamp: new Date(),
+                },
+            ]);
+        }
     };
+
 
 
     return (

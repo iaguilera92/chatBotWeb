@@ -12,7 +12,10 @@ function formatTime(date) {
 
 export default function ChatMessage({ from, text, status, timestamp }) {
     const isUser = from === "user";
-    const isLongText = text.length > 12;
+    const safeText = text ?? "";
+    const isLongText = safeText.length > 12;
+    if (!safeText.trim()) return null;
+
 
     const renderStatusIcon = () => {
         if (!isUser) return null;
@@ -57,7 +60,7 @@ export default function ChatMessage({ from, text, status, timestamp }) {
                         wordBreak: "break-word"
                     }}
                 >
-                    {text}
+                    {safeText}
                 </Typography>
 
 
