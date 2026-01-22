@@ -5,6 +5,8 @@ import ChatContainer from "../components/chat/ChatContainer";
 import ChatInput from "../components/chat/ChatInput";
 
 export default function Chat() {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
     const tenant = useTenant();
     const [isTyping, setIsTyping] = useState(false);
     const [lead, setLead] = useState({
@@ -56,11 +58,12 @@ export default function Chat() {
         setIsTyping(true);
 
         try {
-            const res = await fetch("http://localhost:3000/api/chat", {
+            const res = await fetch(`${API_URL}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ messages: updatedMessages }),
             });
+
 
             const data = await res.json();
             const botReply = data.reply || "";
