@@ -1,24 +1,74 @@
-# Logs
-logs
-*.log
+# =========================
+# 🔐 VARIABLES DE ENTORNO
+# =========================
+.env
+.env.*
+backend/.env
+frontend/.env
+*.local
+
+# =========================
+# 📦 NODE / NPM / PNPM
+# =========================
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# =========================
+# 🧠 BUILD / DIST
+# =========================
+dist/
+build/
+.out/
+.next/
+coverage/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# =========================
+# ⚙️ CACHE / TEMP
+# =========================
+.cache/
+.tmp/
+.temp/
+
+# =========================
+# 🖥️ SISTEMA OPERATIVO
+# =========================
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+desktop.ini
+
+# =========================
+# 🧪 TEST / LOGS
+# =========================
+logs/
+*.log
+
+# =========================
+# 🔐 CLAVES / CERTS
+# =========================
+*.pem
+*.key
+*.crt
+*.pfx
+
+# =========================
+# 🧑‍💻 EDITORES / IDE
+# =========================
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# =========================
+# ⚡ NETLIFY / VERCEL
+# =========================
+.netlify/
+.vercel/
+
+# =========================
+# 🧠 IA / CONFIG
+# =========================
+openai.config.*
+emailjs.config.*
