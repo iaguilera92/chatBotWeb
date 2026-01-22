@@ -30,3 +30,11 @@ Fastify Creador de APIs escalable con Node.js
 
 //CORREO
 pwbot.ia@gmail.com
+//SMTP SERVIDOR
+
+
+ESTRUCTURA:
+Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas (backend/frontend),
+tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, routes y services, en la raiz el .env, uso Fastify.
+En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,pages, services). 
+Mi hosting es Render.

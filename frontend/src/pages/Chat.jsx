@@ -3,9 +3,6 @@ import { useTenant } from "../context/TenantContext";
 import { useState } from "react";
 import ChatContainer from "../components/chat/ChatContainer";
 import ChatInput from "../components/chat/ChatInput";
-import emailjs from "@emailjs/browser";
-
-emailjs.init("BJsyiI89dERTgGOZ2");
 
 export default function Chat() {
     const tenant = useTenant();
@@ -19,20 +16,6 @@ export default function Chat() {
     const [messages, setMessages] = useState([
         { from: "bot", text: tenant.welcomeMessage }
     ]);
-
-    const sendLeadEmail = ({ offer, email, business }) => {
-        emailjs.send(
-            "service_afi4p3g",
-            "template_q2qi8vq",
-            {
-                business_name: business,
-                user_email: email,
-                offer,
-            }
-        );
-    };
-
-
 
 
     const handleSend = async (text) => {
@@ -92,23 +75,6 @@ export default function Chat() {
                     timestamp: new Date(),
                 },
             ]);
-
-            // 🚀 DISPARAR EMAILJS SOLO AL FINAL DEL FLUJO
-            if (
-                !lead.sent &&
-                lead.offer &&
-                lead.email &&
-                lead.business &&
-                botReply.includes("Nuestro equipo se pondrá en contacto")
-            ) {
-                sendLeadEmail({
-                    offer: lead.offer,
-                    email: lead.email,
-                    business: lead.business,
-                });
-
-                setLead(prev => ({ ...prev, sent: true }));
-            }
 
         } catch (e) {
             setIsTyping(false);

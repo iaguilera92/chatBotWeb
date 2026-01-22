@@ -16,15 +16,17 @@ export async function sendToAI(messages: {
 }[]) {
 
     const systemPrompt = `
-${PROMPT_PERFIL_IA}
+    ${PROMPT_PERFIL_IA}
 
-${PROMPT_NEGOCIO}
+    ${PROMPT_NEGOCIO}
 
-${PROMPT_OFERTAS}
-  `.trim();
+    ${PROMPT_OFERTAS}
+    `.trim();
 
     const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-mini",   // 🔥 más rápido
+        max_tokens: 450,         // 🔥 menos tiempo de generación
+        temperature: 0.5,        // 🔥 respuestas más directas
         messages: [
             { role: "system", content: systemPrompt },
             ...messages,
