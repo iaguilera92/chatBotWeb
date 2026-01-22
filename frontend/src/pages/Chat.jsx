@@ -16,8 +16,9 @@ export default function Chat() {
         business: null,
         sent: false,
     });
-    const isEmail = (text) =>
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+    const [messages, setMessages] = useState([
+        { from: "bot", text: tenant.welcomeMessage }
+    ]);
 
     const sendLeadEmail = ({ offer, email, business }) => {
         emailjs.send(
@@ -28,18 +29,11 @@ export default function Chat() {
                 user_email: email,
                 offer,
             }
-        )
-            .then(() => {
-                console.log("✅ Lead enviado");
-            })
-            .catch((err) => {
-                console.error("❌ Error EmailJS", err);
-            });
+        );
     };
 
-    const [messages, setMessages] = useState([
-        { from: "bot", text: tenant.welcomeMessage }
-    ]);
+
+
 
     const handleSend = async (text) => {
         const userMessage = {
@@ -50,54 +44,31 @@ export default function Chat() {
 
         // 🧠 Detectar selección de oferta
         if (/oferta\s*1|la\s*1|opción\s*1/i.test(text)) {
-            setLead((prev) => ({ ...prev, offer: "Oferta 1 - Pago único" }));
+            setLead(prev => ({ ...prev, offer: "Oferta 1 - Pago único" }));
         }
 
         if (/oferta\s*2|la\s*2|opción\s*2/i.test(text)) {
-            setLead((prev) => ({ ...prev, offer: "Oferta 2 - Suscripción mensual" }));
+            setLead(prev => ({ ...prev, offer: "Oferta 2 - Suscripción mensual" }));
         }
 
-        // 📧 Detectar correo electrónico
+        // 📧 Detectar correo
         if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-            setLead((prev) => ({ ...prev, email: text }));
+            setLead(prev => ({ ...prev, email: text }));
         }
 
-        // 🏷️ Detectar nombre del negocio (después del correo)
-        if (lead.email && !lead.business && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-            setLead((prev) => ({ ...prev, business: text }));
-        }
-
-        // 🚀 Enviar EmailJS cuando esté todo listo
+        // 🏷️ Detectar nombre del negocio (solo después del correo)
         if (
-            lead.offer &&
             lead.email &&
-            lead.business &&
-            !lead.sent
+            !lead.business &&
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)
         ) {
-            emailjs.send(
-                "service_afi4p3g",
-                "template_q2qi8vq",
-                {
-                    business_name: lead.business,
-                    user_email: lead.email,
-                    offer: lead.offer,
-                },
-                "BJsyiI89dERTgGOZ2"
-            )
-                .then(() => {
-                    console.log("✅ Lead enviado a EmailJS");
-                })
-                .catch((err) => {
-                    console.error("❌ Error enviando EmailJS", err);
-                });
-
-            setLead((prev) => ({ ...prev, sent: true }));
+            setLead(prev => ({ ...prev, business: text }));
         }
 
-        // 🔑 Construir historial actualizado
+        // 🔑 Construir historial
         const updatedMessages = [...messages, userMessage];
 
-        // Actualizar UI
+        // UI inmediata
         setMessages(updatedMessages);
         setIsTyping(true);
 
@@ -105,25 +76,43 @@ export default function Chat() {
             const res = await fetch("http://localhost:3000/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    messages: updatedMessages,
-                }),
+                body: JSON.stringify({ messages: updatedMessages }),
             });
 
             const data = await res.json();
+            const botReply = data.reply || "";
 
             setIsTyping(false);
-            setMessages((prev) => [
+
+            setMessages(prev => [
                 ...prev,
                 {
                     from: "bot",
-                    text: data.reply,
+                    text: botReply,
                     timestamp: new Date(),
                 },
             ]);
+
+            // 🚀 DISPARAR EMAILJS SOLO AL FINAL DEL FLUJO
+            if (
+                !lead.sent &&
+                lead.offer &&
+                lead.email &&
+                lead.business &&
+                botReply.includes("Nuestro equipo se pondrá en contacto")
+            ) {
+                sendLeadEmail({
+                    offer: lead.offer,
+                    email: lead.email,
+                    business: lead.business,
+                });
+
+                setLead(prev => ({ ...prev, sent: true }));
+            }
+
         } catch (e) {
             setIsTyping(false);
-            setMessages((prev) => [
+            setMessages(prev => [
                 ...prev,
                 {
                     from: "bot",

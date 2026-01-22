@@ -18,44 +18,70 @@ type AiMessage = {
 };
 
 export async function chatRoutes(app: FastifyInstance) {
-
     app.post(
         "/api/chat",
         async (request: FastifyRequest<{ Body: ChatBody }>, reply) => {
             try {
                 const { messages } = request.body;
-                console.log("RAW MESSAGES >>>", messages);
 
-                // ✅ Sanitizar + convertir al formato OpenAI
-                const cleanMessages =
-                    messages.length > 0 && messages[0].from === "bot"
-                        ? messages.slice(1)
-                        : messages;
+                app.log.info(
+                    {
+                        messages: messages.map(m => ({
+                            from: m.from,
+                            text: m.text,
+                        })),
+                    },
+                    "RAW UI MESSAGES"
+                );
 
-                const aiMessages: AiMessage[] = cleanMessages
-                    .filter((m): m is UiMessage & { text: string } => typeof m.text === "string")
-                    .map<AiMessage>((m) => ({
-                        role: m.from === "user" ? "user" : "assistant",
-                        content: m.text.trim(),
-                    }))
-                    .filter((m) => m.content.length > 0);
-
-
-                // 🔍 Seguridad extra
-                if (aiMessages.length === 0) {
+                if (!messages || messages.length === 0) {
                     return { reply: "💡 ¿En qué podemos ayudarte?" };
                 }
 
-                // 🤖 LLAMADA REAL A LA IA
+                // 🔹 Último mensaje del usuario
+                const lastUserMessage = [...messages]
+                    .reverse()
+                    .find(m => m.from === "user" && typeof m.text === "string");
+
+                if (!lastUserMessage || !lastUserMessage.text?.trim()) {
+                    return { reply: "💡 ¿En qué podemos ayudarte?" };
+                }
+
+                // 🔹 Último mensaje del bot (para mantener el flujo)
+                const lastBotMessage = [...messages]
+                    .reverse()
+                    .find(m => m.from === "bot" && typeof m.text === "string" && m.text.trim());
+
+                // 🧠 Construcción mínima del contexto
+                const aiMessages: AiMessage[] = [
+                    ...(lastBotMessage
+                        ? [
+                            {
+                                role: "assistant" as const,
+                                content: lastBotMessage.text!.trim(),
+                            },
+                        ]
+                        : []),
+                    {
+                        role: "user" as const,
+                        content: lastUserMessage.text.trim(),
+                    },
+                ];
+
+
+                // 🤖 Llamada a la IA
                 const aiReply = await sendToAI(aiMessages);
 
-                // ✅ RESPUESTA AL FRONTEND
-                return { reply: aiReply };
-
+                return {
+                    reply: aiReply || "💡 ¿En qué podemos ayudarte?",
+                };
             } catch (error) {
                 app.log.error(error);
                 reply.code(500);
-                return { error: "Error IA" };
+                return {
+                    reply:
+                        "⚠️ En este momento no puedo responder. Intenta nuevamente en unos segundos 😊",
+                };
             }
         }
     );
