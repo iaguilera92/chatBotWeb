@@ -66,20 +66,23 @@ export default function Chat() {
 
 
             const data = await res.json();
-            const botReply = data.reply || "";
+            const replies = data.replies
+                ? data.replies
+                : [data.reply];
 
             setIsTyping(false);
 
             setMessages(prev => [
                 ...prev,
-                {
+                ...replies.map(r => ({
                     from: "bot",
-                    text: typeof botReply === "string" ? botReply : botReply.text,
-                    image: typeof botReply === "object" ? botReply.image : null,
-                    video: typeof botReply === "object" ? botReply.video : null,
+                    text: r.text,
+                    image: r.image,
+                    video: r.video,
                     timestamp: new Date(),
-                },
+                })),
             ]);
+
 
 
         } catch (e) {

@@ -28,10 +28,12 @@ npm run dev
 //BACKEND
 Fastify Creador de APIs escalable con Node.js
 
-//CORREO
+//CORREO - SMTP SERVIDOR
 pwbot.ia@gmail.com
-//SMTP SERVIDOR
 
+//SIMULAR HOSTING RENDER
+npm ci
+npm run build
 
 ESTRUCTURA:
 Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas (backend/frontend),

@@ -73,14 +73,22 @@ export async function chatRoutes(app: FastifyInstance) {
                 const text = lastUserMessage.text.trim();
 
                 // ❤️ REGLA PERSONAL: Maivelyn
+                // ❤️ REGLA PERSONAL: Maivelyn (multi-mensaje)
                 if (text.toLowerCase() === "conoces a maivelyn?") {
                     return {
-                        reply: {
-                            text: "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.",
-                            image: "/fondo_adm.jpeg",
-                        },
+                        replies: [
+                            {
+                                text: "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.",
+                                image: "/fondo_adm.jpeg",
+                            },
+                            {
+                                text: "👨‍👩‍👧‍👦 Juntos han formado una hermosa familia con *tres maravillosos hijos*, reflejo de amor, unión y sueños compartidos 💕✨",
+                                image: "/hijos.jpeg",
+                            },
+                        ],
                     };
                 }
+
 
                 // 🎬 REGLA PERSONAL: James
                 if (text.toLowerCase() === "conoces a james?") {
