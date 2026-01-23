@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/formbody": "^8.0.2",
     "@types/axios": "^0.9.36",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
