@@ -55,10 +55,11 @@ export async function chatRoutes(app: FastifyInstance) {
 
                 if (!messages || messages.length === 0) {
                     return {
-                        reply: {
-                            text: "💡 ¿En qué podemos ayudarte?",
-                        },
+                        replies: [
+                            { text: "💡 ¿En qué podemos ayudarte?" }
+                        ],
                     };
+
                 }
 
                 // 🔹 Último mensaje del usuario
@@ -67,13 +68,17 @@ export async function chatRoutes(app: FastifyInstance) {
                     .find(m => m.from === "user" && typeof m.text === "string");
 
                 if (!lastUserMessage || !lastUserMessage.text?.trim()) {
-                    return { reply: "💡 ¿En qué podemos ayudarte?" };
+                    return {
+                        replies: [
+                            { text: "💡 ¿En qué podemos ayudarte?" }
+                        ],
+                    };
+
                 }
 
                 const text = lastUserMessage.text.trim();
 
                 // ❤️ REGLA PERSONAL: Maivelyn
-                // ❤️ REGLA PERSONAL: Maivelyn (multi-mensaje)
                 if (text.toLowerCase() === "conoces a maivelyn?") {
                     return {
                         replies: [
@@ -93,11 +98,14 @@ export async function chatRoutes(app: FastifyInstance) {
                 // 🎬 REGLA PERSONAL: James
                 if (text.toLowerCase() === "conoces a james?") {
                     return {
-                        reply: {
-                            text: "🐶 James es el perrito de Ignacio Aguilera el Adminsitrador... Es Leal, cariñoso y siempre presente, un verdadero compañero de vida y bastante MAMON ❤️.",
-                            video: "/james.mp4",
-                        },
+                        replies: [
+                            {
+                                text: "🐶 James es el perrito de Ignacio Aguilera el Adminsitrador... Es Leal, cariñoso y siempre presente, un verdadero compañero de vida y bastante MAMON ❤️.",
+                                video: "/james.mp4",
+                            },
+                        ],
                     };
+
                 }
 
                 // 🚫 Evitar reenvío si ya se confirmó
@@ -110,9 +118,9 @@ export async function chatRoutes(app: FastifyInstance) {
 
                 if (alreadySent) {
                     return {
-                        reply: {
-                            text: "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻",
-                        },
+                        replies: [
+                            { text: "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻" }
+                        ],
                     };
 
                 }
@@ -170,10 +178,13 @@ export async function chatRoutes(app: FastifyInstance) {
                     }
 
                     return {
-                        reply: {
-                            text: "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻",
-                        },
+                        replies: [
+                            {
+                                text: "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻",
+                            },
+                        ],
                     };
+
 
                 }
 
@@ -214,10 +225,11 @@ export async function chatRoutes(app: FastifyInstance) {
                 try {
                     const aiReply = await sendToAI(aiMessages);
                     return {
-                        reply: {
-                            text: aiReply,
-                        },
+                        replies: [
+                            { text: aiReply }
+                        ],
                     };
+
 
                 } catch (err: any) {
 
@@ -237,11 +249,14 @@ export async function chatRoutes(app: FastifyInstance) {
                     if (err.message === "EMPTY_AI_RESPONSE") {
                         app.log.error("La IA respondió vacío");
                         return {
-                            reply: {
-                                text: "⚠️ En este momento no puedo responder. Intenta nuevamente.",
-                            },
+                            replies: [
+                                {
+                                    text: "⚠️ En este momento no puedo responder. Intenta nuevamente.",
+                                },
+                            ],
                         };
                     }
+
 
 
                     // 🚨 CASO CLAVE: OpenAI sin saldo / límite
@@ -292,9 +307,13 @@ export async function chatRoutes(app: FastifyInstance) {
                 app.log.error(error);
                 reply.code(500);
                 return {
-                    reply:
-                        "⚠️ En este momento no puedo responder. Intenta nuevamente en unos segundos 😊",
+                    replies: [
+                        {
+                            text: "⚠️ En este momento no puedo responder. Intenta nuevamente en unos segundos 😊",
+                        },
+                    ],
                 };
+
             }
         }
     );

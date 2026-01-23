@@ -64,11 +64,12 @@ export default function Chat() {
                 body: JSON.stringify({ messages: updatedMessages }),
             });
 
-
             const data = await res.json();
-            const replies = data.replies
+
+            const replies = Array.isArray(data.replies)
                 ? data.replies
-                : [data.reply];
+                : [];
+
 
             setIsTyping(false);
 
