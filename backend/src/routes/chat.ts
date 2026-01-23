@@ -6,7 +6,9 @@ import { botStatus } from "../state/botStatus";
 
 type UiMessage = {
     from: "user" | "bot";
-    text: string | null;
+    text?: string | null;
+    image?: string;
+    video?: string;
     status?: "sent" | "delivered" | "seen";
     timestamp?: string | Date;
 };
@@ -52,7 +54,11 @@ export async function chatRoutes(app: FastifyInstance) {
                 );
 
                 if (!messages || messages.length === 0) {
-                    return { reply: "💡 ¿En qué podemos ayudarte?" };
+                    return {
+                        reply: {
+                            text: "💡 ¿En qué podemos ayudarte?",
+                        },
+                    };
                 }
 
                 // 🔹 Último mensaje del usuario
@@ -96,8 +102,11 @@ export async function chatRoutes(app: FastifyInstance) {
 
                 if (alreadySent) {
                     return {
-                        reply: "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻",
+                        reply: {
+                            text: "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻",
+                        },
                     };
+
                 }
 
                 // 📧 Detectar correo dentro del texto
@@ -153,9 +162,11 @@ export async function chatRoutes(app: FastifyInstance) {
                     }
 
                     return {
-                        reply:
-                            "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻",
+                        reply: {
+                            text: "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻",
+                        },
                     };
+
                 }
 
                 // 🔹 Último mensaje del bot (contexto mínimo)
@@ -194,7 +205,12 @@ export async function chatRoutes(app: FastifyInstance) {
                 // 🤖 Llamada a la IA
                 try {
                     const aiReply = await sendToAI(aiMessages);
-                    return { reply: aiReply };
+                    return {
+                        reply: {
+                            text: aiReply,
+                        },
+                    };
+
                 } catch (err: any) {
 
                     app.log.error(
@@ -213,7 +229,9 @@ export async function chatRoutes(app: FastifyInstance) {
                     if (err.message === "EMPTY_AI_RESPONSE") {
                         app.log.error("La IA respondió vacío");
                         return {
-                            reply: "⚠️ En este momento no puedo responder. Intenta nuevamente.",
+                            reply: {
+                                text: "⚠️ En este momento no puedo responder. Intenta nuevamente.",
+                            },
                         };
                     }
 
