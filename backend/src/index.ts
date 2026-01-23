@@ -2,14 +2,17 @@ import "./env";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { chatRoutes } from "./routes/chat";
-import { whatsappWebhook } from "./webhook";
+//import { whatsappWebhook } from "./webhook"; //OLD
+import { whatsappTwilioWebhook } from "./webhook-twilio";
 
 async function startServer() {
     const app = Fastify({ logger: true });
 
     await app.register(cors, { origin: "*" });
 
-    whatsappWebhook(app);
+    //whatsappWebhook(app); //OLD
+    whatsappTwilioWebhook(app);
+
     await chatRoutes(app);
 
     app.get("/health", async () => ({ status: "ok" }));

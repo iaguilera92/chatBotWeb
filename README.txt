@@ -35,6 +35,13 @@ pwbot.ia@gmail.com
 npm ci
 npm run build
 
+//PROBAR BOT DE API (RENDER)
+curl -X POST https://pwbot-zfzs.onrender.com/webhook/whatsapp \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "From=whatsapp:+56900000000&Body=hola"
+
+
+
 ESTRUCTURA:
 Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas (backend/frontend),
 tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, routes y services, en la raiz el .env, uso Fastify.
