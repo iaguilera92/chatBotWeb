@@ -6,6 +6,8 @@ import formbody from "@fastify/formbody";
 
 import { chatRoutes } from "./routes/chat";
 import { whatsappTwilioWebhook } from "./webhook-twilio";
+import { whatsappMetaWebhook } from "./webhook-meta";
+
 
 async function startServer() {
     const app = Fastify({ logger: true });
@@ -15,7 +17,8 @@ async function startServer() {
     await app.register(cors, { origin: "*" });
 
     // 🔗 Rutas
-    whatsappTwilioWebhook(app); // POST /webhook/whatsapp
+    whatsappTwilioWebhook(app); // /webhook/whatsapp/twilio
+    whatsappMetaWebhook(app);   // /webhook/whatsapp/meta
     await chatRoutes(app);      // POST /api/chat
 
     // ❤️ Healthcheck
