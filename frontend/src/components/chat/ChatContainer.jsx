@@ -26,18 +26,22 @@ export default function ChatContainer({ messages, isTyping }) {
             {messages
                 .filter(
                     msg =>
-                        typeof msg.text === "string" &&
-                        msg.text.trim().length > 0
+                        (typeof msg.text === "string" && msg.text.trim().length > 0) ||
+                        typeof msg.image === "string" ||
+                        typeof msg.video === "string"
                 )
                 .map((msg, i) => (
                     <ChatMessage
                         key={i}
                         from={msg.from}
                         text={msg.text}
+                        image={msg.image}
+                        video={msg.video}
                         status={msg.status}
                         timestamp={msg.timestamp}
                     />
                 ))}
+
 
             {isTyping && <TypingIndicator />}
 

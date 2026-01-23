@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyRequest } from "fastify";
 import { sendToAI } from "../services/openai.service";
 import { sendLeadEmail } from "../services/email.service";
+import { notifyAdminBotDown } from "../services/notifyAdminBotDown";
+import { botStatus } from "../state/botStatus";
 
 type UiMessage = {
     from: "user" | "bot";
@@ -63,6 +65,26 @@ export async function chatRoutes(app: FastifyInstance) {
                 }
 
                 const text = lastUserMessage.text.trim();
+
+                // ❤️ REGLA PERSONAL: Maivelyn
+                if (text.toLowerCase() === "conoces a maivelyn?") {
+                    return {
+                        reply: {
+                            text: "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.",
+                            image: "/fondo_adm.jpeg",
+                        },
+                    };
+                }
+
+                // 🎬 REGLA PERSONAL: James
+                if (text.toLowerCase() === "conoces a james?") {
+                    return {
+                        reply: {
+                            text: "🐶 James es el perrito de Ignacio Aguilera el Adminsitrador... Es Leal, cariñoso y siempre presente, un verdadero compañero de vida y bastante MAMON ❤️.",
+                            video: "/james.mp4",
+                        },
+                    };
+                }
 
                 // 🚫 Evitar reenvío si ya se confirmó
                 const alreadySent = messages.some(
@@ -162,13 +184,85 @@ export async function chatRoutes(app: FastifyInstance) {
                     },
                 ];
 
-                // 🤖 Llamada a la IA
-                const aiReply = await sendToAI(aiMessages);
+                app.log.warn({ botStatus }, "ESTADO ACTUAL DEL BOT");
 
-                return {
-                    reply: aiReply || "💡 ¿En qué podemos ayudarte?",
-                };
+                // 🚫 BOT CAÍDO → NO llamar a OpenAI
+                if (!botStatus.enabled) {
+                    return reply.status(204).send();
+                }
+
+                // 🤖 Llamada a la IA
+                try {
+                    const aiReply = await sendToAI(aiMessages);
+                    return { reply: aiReply };
+                } catch (err: any) {
+
+                    app.log.error(
+                        {
+                            status: err?.status,
+                            statusCode: err?.statusCode,
+                            code: err?.code,
+                            name: err?.name,
+                            message: err?.message,
+                            error: err?.error,
+                        },
+                        "ERROR DESDE OPENAI"
+                    );
+
+
+                    if (err.message === "EMPTY_AI_RESPONSE") {
+                        app.log.error("La IA respondió vacío");
+                        return {
+                            reply: "⚠️ En este momento no puedo responder. Intenta nuevamente.",
+                        };
+                    }
+
+
+                    // 🚨 CASO CLAVE: OpenAI sin saldo / límite
+                    const status = err?.status ?? err?.statusCode;
+
+                    // 🚨 CASO CLAVE: OpenAI sin saldo / límite
+                    if (status === 402 || status === 429) {
+
+                        if (botStatus.enabled) {
+                            botStatus.enabled = false;
+                            botStatus.disabledAt = new Date();
+                            botStatus.reason = "openai_quota_exceeded";
+
+                            const rawMessage = err?.message || "";
+                            const retryMatch = rawMessage.match(/try again in ([\dhms\.]+)/i);
+
+                            let retryAfter: string | null = null;
+
+                            if (retryMatch) {
+                                const raw = retryMatch[1];
+
+                                const h = raw.match(/(\d+)h/)?.[1];
+                                const m = raw.match(/(\d+)m/)?.[1];
+
+                                if (h || m) {
+                                    retryAfter = `${h ? `${h}h` : ""}${h && m ? " " : ""}${m ? `${m}m` : ""}`;
+                                }
+                            }
+
+
+                            await notifyAdminBotDown({
+                                reason: botStatus.reason,
+                                disabledAt: botStatus.disabledAt,
+                                retryAfter,
+                            });
+                        }
+
+                        return reply.status(204).send();
+                    }
+
+
+                    // ❗ Otros errores siguen el flujo normal
+                    throw err;
+                }
+
             } catch (error) {
+
                 app.log.error(error);
                 reply.code(500);
                 return {

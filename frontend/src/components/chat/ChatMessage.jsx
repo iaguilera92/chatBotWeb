@@ -10,11 +10,13 @@ function formatTime(date) {
     });
 }
 
-export default function ChatMessage({ from, text, status, timestamp }) {
+export default function ChatMessage({ from, text, image, video, status, timestamp }) {
+
     const isUser = from === "user";
     const safeText = text ?? "";
     const isLongText = safeText.length > 12;
-    if (!safeText.trim()) return null;
+    if (!safeText.trim() && !image) return null;
+
 
 
     const renderStatusIcon = () => {
@@ -39,11 +41,11 @@ export default function ChatMessage({ from, text, status, timestamp }) {
                     minWidth: 120,
                     px: 1.5,
                     pt: 1,
-                    pb: isLongText ? 2.6 : 1.2,   // ⭐ CLAVE
+                    pb: image ? 2.8 : isLongText ? 2.6 : 1.2,
                     pr: 7.6,
                     borderRadius: 2,
-                    backgroundColor: isUser ? "#d9fdd3" : "#ffffff",
-                    boxShadow: "0 1px 1px rgba(0,0,0,0.1)",
+                    backgroundColor: image && !safeText ? "transparent" : isUser ? "#d9fdd3" : "#fff",
+                    boxShadow: image && !safeText ? "none" : "0 1px 1px rgba(0,0,0,0.1)",
                     position: "relative",
                     minHeight: 32
                 }}
@@ -63,6 +65,36 @@ export default function ChatMessage({ from, text, status, timestamp }) {
                     {safeText}
                 </Typography>
 
+                {image && (
+                    <Box
+                        component="img"
+                        src={image}
+                        alt="Imagen"
+                        sx={{
+                            width: "100%",
+                            maxWidth: 260,
+                            borderRadius: 2,
+                            mt: safeText ? 1 : 0.5
+                        }}
+                    />
+                )}
+
+                {video && (
+                    <Box
+                        component="video"
+                        src={video}
+                        controls
+                        autoPlay
+                        muted
+                        loop
+                        sx={{
+                            width: "100%",
+                            maxWidth: 260,
+                            borderRadius: 2,
+                            mt: text || image ? 1 : 0.5
+                        }}
+                    />
+                )}
 
                 {/* Hora + checks */}
                 <Box

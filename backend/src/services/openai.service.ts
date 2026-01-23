@@ -2,9 +2,9 @@ import OpenAI from "openai";
 import {
     PROMPT_NEGOCIO,
     PROMPT_PERFIL_IA,
-    PROMPT_OFERTAS
+    PROMPT_OFERTAS,
+    PROMPT_PERSONAL
 } from "../prompts";
-
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY!,
@@ -16,22 +16,30 @@ export async function sendToAI(messages: {
 }[]) {
 
     const systemPrompt = `
-    ${PROMPT_PERFIL_IA}
+${PROMPT_PERFIL_IA}
 
-    ${PROMPT_NEGOCIO}
+${PROMPT_NEGOCIO}
 
-    ${PROMPT_OFERTAS}
-    `.trim();
+${PROMPT_OFERTAS}
+
+${PROMPT_PERSONAL}
+`.trim();
 
     const response = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",   // 🔥 más rápido
-        max_tokens: 450,         // 🔥 menos tiempo de generación
-        temperature: 0.5,        // 🔥 respuestas más directas
+        model: "gpt-4.1-mini",
+        max_tokens: 450,
+        temperature: 0.5,
         messages: [
             { role: "system", content: systemPrompt },
             ...messages,
         ],
     });
 
-    return response.choices[0].message.content;
+    const content = response.choices[0]?.message?.content;
+
+    if (!content || !content.trim()) {
+        throw new Error("EMPTY_AI_RESPONSE");
+    }
+
+    return content;
 }

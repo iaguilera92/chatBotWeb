@@ -74,10 +74,13 @@ export default function Chat() {
                 ...prev,
                 {
                     from: "bot",
-                    text: botReply,
+                    text: typeof botReply === "string" ? botReply : botReply.text,
+                    image: typeof botReply === "object" ? botReply.image : null,
+                    video: typeof botReply === "object" ? botReply.video : null,
                     timestamp: new Date(),
                 },
             ]);
+
 
         } catch (e) {
             setIsTyping(false);

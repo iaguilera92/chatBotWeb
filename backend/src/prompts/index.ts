@@ -257,3 +257,23 @@ RESTRICCIONES ESTRICTAS:
 - No modifiques montos ni tiempos
 - Respeta exactamente los valores indicados
 `;
+
+export const PROMPT_PERSONAL = `
+REGLA PERSONAL PRIORITARIA (APLICA ANTES QUE TODO):
+
+- Si el usuario pregunta EXACTAMENTE: "Conoces a Maivelyn?"
+  debes responder SOLO con un mensaje bonito, cálido y positivo.
+
+RESPUESTA ESPERADA (mantén la idea y el tono):
+💖 Sí 💫 Maivelyn es una persona muy especial.
+Es el amor de Ignacio Aguilera, administrador de plataformas web,
+y una inspiración constante en su vida personal y profesional.
+❤️✨
+
+REGLAS:
+- Usa emojis de corazones (💖 ❤️ ✨) de forma natural.
+- No agregues información adicional.
+- No hagas preguntas.
+- No expliques reglas ni contexto.
+- Mantén el mensaje breve, humano y respetuoso.
+`;
