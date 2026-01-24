@@ -151,10 +151,23 @@ export default function PanelHumano() {
                     {/* MENSAJES */}
                     <Box sx={{ flex: 1, p: 2, overflowY: "auto" }}>
                         {chat.messages.map((m, i) => (
-                            <Box key={i} sx={{ mb: 1 }}>
+                            <Box
+                                key={i}
+                                sx={{
+                                    mb: 1,
+                                    textAlign: m.from === "human" ? "right" : "left",
+                                    color:
+                                        m.from === "human"
+                                            ? "#075e54"
+                                            : m.from === "bot"
+                                                ? "#1f2937"
+                                                : "#000",
+                                }}
+                            >
                                 <b>{m.from}:</b> {m.text}
                             </Box>
                         ))}
+
                     </Box>
 
                     {/* INPUT */}

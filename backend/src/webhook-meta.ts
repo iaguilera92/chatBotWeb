@@ -6,6 +6,7 @@ import {
     getConversation,
     setMode,
 } from "./services/conversations.store";
+import { normalizePhone } from "./services/phone.util";
 
 /**
  * Detecta si el usuario solicita hablar con un humano
@@ -46,7 +47,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            const from = message.from;
+            const from = normalizePhone(message.from);
             const text = message.text?.body?.trim();
             if (!text) return reply.send("EVENT_RECEIVED");
 

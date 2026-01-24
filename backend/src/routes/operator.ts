@@ -14,7 +14,7 @@ export async function operatorRoutes(app: FastifyInstance) {
             return reply.code(400).send({ error: "to and text required" });
         }
 
-        const phone = normalizePhone(to);
+        const phone = normalizePhone(req.params.phone);
 
         // 📝 log corto y útil
         app.log.info(`👤 Human → ${phone}: ${text.slice(0, 40)}`);
