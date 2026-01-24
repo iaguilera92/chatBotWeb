@@ -8,20 +8,14 @@ import {
 } from "./services/conversations.store";
 import { normalizePhone } from "./services/phone.util";
 
-/**
- * Detecta si el usuario solicita hablar con un humano
- */
 function shouldEscalateToHuman(text: string): boolean {
     const keywords = ["ejecutivo", "persona", "humano", "agente", "hablar"];
     return keywords.some(k => text.toLowerCase().includes(k));
 }
 
-/**
- * Webhook WhatsApp Cloud API (Meta)
- */
 export function whatsappMetaWebhook(app: FastifyInstance) {
 
-    // 🔐 Verificación obligatoria del webhook (Meta)
+    // 🔐 Verificación webhook Meta
     app.get("/webhook/whatsapp/meta", async (req: any, reply) => {
         const mode = req.query["hub.mode"];
         const token = req.query["hub.verify_token"];
@@ -34,35 +28,34 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
         return reply.code(403).send("Forbidden");
     });
 
-    // 📩 Mensajes entrantes desde WhatsApp
+    // 📩 Mensajes entrantes
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
-        console.log("📩 WEBHOOK META RECIBIDO");
-        console.log(JSON.stringify(req.body, null, 2));
         try {
             const message =
                 req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-            // Ignorar eventos no-texto
             if (!message || message.type !== "text") {
                 return reply.send("EVENT_RECEIVED");
             }
 
             const from = normalizePhone(message.from);
             const text = message.text?.body?.trim();
-            if (!text) return reply.send("EVENT_RECEIVED");
 
-            // 💾 Guardar mensaje del usuario
+            if (!from || !text) {
+                return reply.send("EVENT_RECEIVED");
+            }
+
+            // 💾 Guardar mensaje del cliente
             saveMessage(from, "user", text);
 
-            // 🔁 Estado actual de la conversación
             const convo = getConversation(from);
 
-            // 👤 Si está en modo humano, el bot se silencia
+            // 👤 Modo humano → bot se silencia
             if (convo.mode === "human") {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 🔀 Solicitud explícita de humano
+            // 🔀 Escalar a humano
             if (shouldEscalateToHuman(text)) {
                 setMode(from, "human");
 
