@@ -1,28 +1,23 @@
 import "./env";
+
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import formbody from "@fastify/formbody";
-
 import { chatRoutes } from "./routes/chat";
-//import { whatsappTwilioWebhook } from "./webhook-twilio";
 import { whatsappMetaWebhook } from "./webhook-meta";
 import { operatorRoutes } from "./routes/operator";
 import { conversationRoutes } from "./routes/conversations";
 
-
 async function startServer() {
     const app = Fastify({ logger: true });
 
-    // 🔴 ORDEN CRÍTICO
-    await app.register(formbody);
+    // ✅ CORS
     await app.register(cors, { origin: "*" });
 
-    // 🔗 Rutas
-    //whatsappTwilioWebhook(app); // /webhook/whatsapp/twilio
-    whatsappMetaWebhook(app);   // /webhook/whatsapp/meta
-    await chatRoutes(app);      // POST /api/chat
-    await operatorRoutes(app); //OPERADOR PANEL-HUMANO
-    await conversationRoutes(app); //HISTORIAL PANEL-HUMANO
+    // 🔗 Rutas API
+    whatsappMetaWebhook(app);        // /webhook/whatsapp/meta
+    await chatRoutes(app);           // POST /api/chat
+    await operatorRoutes(app);       // /api/operator/*
+    await conversationRoutes(app);   // /api/conversations/*
 
     // ❤️ Healthcheck
     app.get("/health", async () => ({ status: "ok" }));
@@ -31,7 +26,7 @@ async function startServer() {
 
     await app.listen({ port, host: "0.0.0.0" });
 
-    console.log(`\n🚀 Backend running`);
+    console.log("\n🚀 Backend running");
     console.log(`👉 http://localhost:${port}/health\n`);
 }
 

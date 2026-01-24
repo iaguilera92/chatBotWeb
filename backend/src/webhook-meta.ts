@@ -35,6 +35,8 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
 
     // 📩 Mensajes entrantes desde WhatsApp
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
+        console.log("📩 WEBHOOK META RECIBIDO");
+        console.log(JSON.stringify(req.body, null, 2));
         try {
             const message =
                 req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
