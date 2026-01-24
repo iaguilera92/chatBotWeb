@@ -18,8 +18,6 @@ npx tsc --init
 //INSTALAMOS frontend
 cd ../frontend
 npm create vite@latest . -- --template react
-npm install
-npm run dev
 
 //CORRER APP - Se creo package.json en la raiz (concurrently) permite ejecutar back/front
 npm install
@@ -41,6 +39,21 @@ curl -X POST https://pwbot-zfzs.onrender.com/webhook/whatsapp \
   -d "From=whatsapp:+56900000000&Body=hola"
 
 
+INSTRUCCIONES CLIENTE:
+- Respaldar chats:
+    - iPhone → iCloud activo + Copia de seguridad
+    - Android → Google Drive activo + Copia de seguridad
+
+- Migración:
+    - Tu número de WhatsApp Business se usará en Cloud API (Configuración para producción)
+
+- Costos mensuales:
+    - OpenAI USD 10 · WhatsApp Cloud API USD 10
+
+- PWBot IA + Panel Humano:
+  - $29.990 CLP (mensual)
+
+N° BOT: 56946873014
 
 ESTRUCTURA:
 Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas (backend/frontend),

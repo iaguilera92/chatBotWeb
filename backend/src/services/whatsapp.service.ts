@@ -3,6 +3,7 @@ export async function sendWhatsAppMessage(to: string, body: string) {
     console.log("📝 Contenido:", body);
 
     const url = `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+    console.log("TOKEN INICIO:", process.env.WHATSAPP_TOKEN?.slice(0, 10));
 
     const res = await fetch(url, {
         method: "POST",
