@@ -60,5 +60,59 @@ Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas 
 tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, routes y services, en la raiz el .env, uso Fastify.
 En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,pages, services). 
 Mi hosting es Render ya tengo publicado API y FRONT. Estoy usando WhatsApp Cloud API (Meta) para mi N° fono.
-Uso Redis en mi Render para guardar las conversaciones, tengo un panel humano, historial de conversaciones e iniciar conversacion.
+Uso Redis en mi Render para guardar las conversaciones (ESTO PENDIENTE TODAVÍA), tengo un panel humano, historial de conversaciones e iniciar conversacion.
 Habla resumido y con energia.
+
+
+ultimo de chatgpt:
+✅ QUÉ HACER AHORA (paso siguiente correcto)
+
+Sí: debes pasar a WhatsApp Cloud API real (con facturación).
+
+Checklist para pasar a producción (sin perder nada de tu sistema):
+
+Crear / usar Meta Business Manager
+
+Ir a WhatsApp > API de la nube
+
+Agregar un número real
+
+⚠️ Ese número NO puede estar activo en WhatsApp Business App
+
+Verificar el número (SMS / llamada)
+
+Activar facturación (tarjeta)
+
+Actualizar en tu .env:
+
+WHATSAPP_PHONE_NUMBER_ID
+
+WHATSAPP_TOKEN (permanente)
+
+Mantener el mismo webhook (ya está correcto)
+
+Una vez hecho esto:
+
+📩 Cliente escribe → webhook recibe
+
+💾 saveMessage(from, "user", text) se ejecuta
+
+👀 El panel humano muestra el mensaje del cliente
+
+🤖 Bot / 👤 Humano responden normalmente
+
+🟢 ESTADO REAL DE TU PROYECTO (honesto)
+
+✅ Arquitectura correcta
+
+✅ Backend estable
+
+✅ Panel humano funcional
+
+✅ Historial bien diseñado
+
+❌ Sandbox de Meta limita entrada de mensajes
+
+🔜 Falta solo número real + Cloud API paga
+
+pasar al numero real 56946873014
