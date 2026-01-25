@@ -38,7 +38,6 @@ export default function PanelHumano() {
 
     const isHumanMode = chat?.mode === "human";
 
-    // 🔄 Auto-refresh conversaciones
     useEffect(() => {
         const load = () => getConversations().then(setConversations);
         load();
@@ -46,7 +45,6 @@ export default function PanelHumano() {
         return () => clearInterval(t);
     }, []);
 
-    // 🔽 Auto-scroll mensajes
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chat?.messages]);
@@ -89,17 +87,16 @@ export default function PanelHumano() {
         <Box
             sx={{
                 display: "flex",
-                height: "calc(100vh - 64px)",
+                height: isMobile ? "100dvh" : "calc(100vh - 64px)",
                 overflow: "hidden",
                 background:
                     "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
             }}
         >
-
-            {/* 📋 SIDEBAR */}
+            {/* SIDEBAR */}
             <Paper
                 sx={{
-                    width: 320,
+                    width: isMobile ? "100%" : 320,
                     borderRadius: 0,
                     borderRight: "1px solid #e5e7eb",
                     background: "#ffffff",
@@ -107,7 +104,6 @@ export default function PanelHumano() {
                     flexDirection: "column",
                 }}
             >
-                {/* HEADER */}
                 <Box
                     sx={{
                         px: 2,
@@ -124,16 +120,16 @@ export default function PanelHumano() {
                     </Typography>
                 </Box>
 
-                {/* LISTADO */}
                 <List sx={{ p: 1, overflowY: "auto", flex: 1 }}>
                     {conversations.map((c) => {
                         const isHuman = c.mode === "human";
                         const selected = c.phone === activePhone;
 
-                        // ⏱️ Tiempo relativo simple
                         const minutesAgo = c.lastMessageAt
                             ? Math.floor(
-                                (Date.now() - new Date(c.lastMessageAt).getTime()) / 60000
+                                (Date.now() -
+                                    new Date(c.lastMessageAt).getTime()) /
+                                60000
                             )
                             : null;
 
@@ -146,9 +142,9 @@ export default function PanelHumano() {
                                     borderRadius: 2,
                                     alignItems: "flex-start",
                                     position: "relative",
-                                    backgroundColor: selected ? "#eef2ff" : "transparent",
-
-                                    /* 🔥 Indicador lateral */
+                                    backgroundColor: selected
+                                        ? "#eef2ff"
+                                        : "transparent",
                                     "&::before": {
                                         content: '""',
                                         position: "absolute",
@@ -157,16 +153,13 @@ export default function PanelHumano() {
                                         bottom: 8,
                                         width: 3,
                                         borderRadius: 2,
-                                        backgroundColor: isHuman ? "#10b981" : "#3b82f6",
+                                        backgroundColor: isHuman
+                                            ? "#10b981"
+                                            : "#3b82f6",
                                         opacity: selected ? 1 : 0.4,
-                                    },
-
-                                    "&:hover": {
-                                        backgroundColor: "#f1f5f9",
                                     },
                                 }}
                             >
-                                {/* AVATAR */}
                                 <Box
                                     sx={{
                                         width: 36,
@@ -179,22 +172,24 @@ export default function PanelHumano() {
                                         justifyContent: "center",
                                         fontWeight: 700,
                                         fontSize: 13,
-                                        color: "#1e293b",
                                         mr: 1.5,
-                                        flexShrink: 0,
                                     }}
                                 >
                                     {c.phone.slice(-2)}
                                 </Box>
 
-                                {/* CONTENIDO */}
                                 <Box sx={{ flex: 1 }}>
                                     <Typography fontWeight={500}>
                                         {c.phone}
                                     </Typography>
-
-                                    {/* BADGES */}
-                                    <Box sx={{ mt: 0.4, display: "flex", gap: 0.6 }}>
+                                    <Box
+                                        sx={{
+                                            mt: 0.4,
+                                            display: "flex",
+                                            gap: 0.6,
+                                            flexWrap: "wrap",
+                                        }}
+                                    >
                                         <Box
                                             sx={{
                                                 px: 1,
@@ -202,48 +197,50 @@ export default function PanelHumano() {
                                                 borderRadius: 1,
                                                 fontSize: 11,
                                                 fontWeight: 700,
-                                                backgroundColor: isHuman ? "#ecfdf5" : "#eff6ff",
-                                                color: isHuman ? "#065f46" : "#1e40af",
+                                                backgroundColor: isHuman
+                                                    ? "#ecfdf5"
+                                                    : "#eff6ff",
                                             }}
                                         >
-                                            {isHuman ? "CONTROL HUMANO" : "AUTOMATIZADO"}
+                                            {isHuman
+                                                ? "CONTROL HUMANO"
+                                                : "AUTOMATIZADO"}
                                         </Box>
-
                                         {minutesAgo !== null && (
-                                            <Typography fontSize={11} color="text.secondary">
+                                            <Typography
+                                                fontSize={11}
+                                                color="text.secondary"
+                                            >
                                                 hace {minutesAgo} min
                                             </Typography>
                                         )}
                                     </Box>
                                 </Box>
-
-                                {/* 🔔 MENSAJE NUEVO */}
-                                {c.hasUnread && (
-                                    <Box
-                                        sx={{
-                                            width: 10,
-                                            height: 10,
-                                            borderRadius: "50%",
-                                            backgroundColor: "#22c55e",
-                                            mt: 1,
-                                        }}
-                                    />
-                                )}
                             </ListItemButton>
                         );
                     })}
                 </List>
             </Paper>
 
-            {/* 💬 CHAT */}
-            {chat ? (
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            {/* CHAT */}
+            {chat && (
+                <Box
+                    sx={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        height: "100%",
+                    }}
+                >
                     {/* HEADER */}
                     <Box
                         sx={{
                             p: 2,
                             borderBottom: "1px solid #e5e7eb",
                             background: "#ffffff",
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 2,
                         }}
                     >
                         {isMobile && (
@@ -257,18 +254,19 @@ export default function PanelHumano() {
                                 ← Volver
                             </Button>
                         )}
-
                         <Typography fontWeight={600}>{chat.phone}</Typography>
-
                         <Typography
                             fontSize={12}
-                            color={isHumanMode ? "success.main" : "info.main"}
+                            color={
+                                isHumanMode
+                                    ? "success.main"
+                                    : "info.main"
+                            }
                         >
                             {isHumanMode
-                                ? "👤 Control humano activo"
-                                : "🤖 IA operando"}
+                                ? "Control humano activo"
+                                : "IA operando"}
                         </Typography>
-
                         <Button
                             size="small"
                             color="warning"
@@ -283,53 +281,44 @@ export default function PanelHumano() {
                     <Box
                         sx={{
                             flex: 1,
-                            p: 3,
+                            px: isMobile ? 1.5 : 3,
+                            py: 2,
                             overflowY: "auto",
-                            background:
-                                "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
                         }}
                     >
                         {chat.messages.map((m, i) => {
+                            const isUser = m.from === "user";
                             const isBot = m.from === "bot";
                             const isHuman = m.from === "human";
-                            const isUser = m.from === "user";
 
                             return (
                                 <Box
                                     key={i}
                                     sx={{
                                         display: "flex",
-                                        justifyContent: isUser ? "flex-start" : "flex-end",
-                                        mb: 2,
+                                        justifyContent: isUser
+                                            ? "flex-start"
+                                            : "flex-end",
+                                        mb: 1.5,
                                     }}
                                 >
                                     <Box
                                         sx={{
-                                            maxWidth: "70%",
+                                            maxWidth: isMobile
+                                                ? "90%"
+                                                : "70%",
                                             px: 2,
                                             py: 1.2,
                                             borderRadius: 3,
                                             fontSize: 14,
                                             background: isBot
-                                                ? "linear-gradient(135deg, #dbeafe, #eff6ff)"
+                                                ? "#eff6ff"
                                                 : isHuman
-                                                    ? "linear-gradient(135deg, #dcfce7, #bbf7d0)"
+                                                    ? "#dcfce7"
                                                     : "#ffffff",
-                                            boxShadow:
-                                                "0 8px 24px rgba(0,0,0,0.06)",
                                             border: "1px solid #e5e7eb",
                                         }}
                                     >
-                                        {isBot && (
-                                            <Typography fontSize={11} color="info.main">
-                                                🤖 IA
-                                            </Typography>
-                                        )}
-                                        {isHuman && (
-                                            <Typography fontSize={11} color="success.main">
-                                                👤 Operador
-                                            </Typography>
-                                        )}
                                         <Typography>{m.text}</Typography>
                                     </Box>
                                 </Box>
@@ -339,17 +328,30 @@ export default function PanelHumano() {
                     </Box>
 
                     {/* INPUT */}
-                    <Box sx={{ p: 2, background: "#ffffff" }}>
+                    <Box
+                        sx={{
+                            p: 1.5,
+                            background: "#ffffff",
+                            borderTop: "1px solid #e5e7eb",
+                            position: "sticky",
+                            bottom: 0,
+                        }}
+                    >
                         <Stack direction="row" spacing={1}>
                             <TextField
                                 fullWidth
                                 multiline
                                 maxRows={4}
-                                placeholder="Responder como operador humano…"
+                                placeholder="Responder…"
                                 value={message}
-                                onChange={(e) => setMessage(e.target.value)}
+                                onChange={(e) =>
+                                    setMessage(e.target.value)
+                                }
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
+                                    if (
+                                        e.key === "Enter" &&
+                                        !e.shiftKey
+                                    ) {
                                         e.preventDefault();
                                         send();
                                     }
@@ -365,20 +367,6 @@ export default function PanelHumano() {
                         </Stack>
                     </Box>
                 </Box>
-            ) : (
-                !isMobile && (
-                    <Box
-                        sx={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "text.secondary",
-                        }}
-                    >
-                        Selecciona una conversación
-                    </Box>
-                )
             )}
 
             <Dialog
@@ -685,7 +673,6 @@ export default function PanelHumano() {
 
                 </DialogActions>
             </Dialog>
-
         </Box>
     );
 }
