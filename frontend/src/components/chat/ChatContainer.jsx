@@ -18,9 +18,10 @@ export default function ChatContainer({ messages, isTyping }) {
         <Box
             sx={{
                 flex: 1,
+                minHeight: 0,          // ⭐ CLAVE
+                overflowY: "auto",
                 px: { xs: 1, md: 2 },
                 py: { xs: 0.5, md: 2 },
-                overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
                 backgroundColor: "#efeae2",
                 backgroundImage:

@@ -24,7 +24,7 @@ export default function Header() {
         elevation={1}
         sx={{ backgroundColor: "#111827", color: "white" }}
       >
-        <Toolbar disableGutters sx={{ px: 2, width: "100vw" }}>
+        <Toolbar sx={{ px: 2 }}>
           {/* IZQUIERDA */}
           <Box
             sx={{

@@ -115,12 +115,12 @@ export default function Chat() {
         <Box
             sx={{
                 width: "100%",
-                height: "calc(100dvh - env(safe-area-inset-top) - 56px)",
+                flex: 1,
+                minHeight: 0,
                 display: "flex",
                 justifyContent: "center",
-                alignItems: "stretch",
+                overflow: "hidden",
                 backgroundColor: "#f5f7fb",
-                px: 0,
             }}
         >
             <Paper
@@ -128,17 +128,21 @@ export default function Chat() {
                 sx={{
                     width: "100%",
                     maxWidth: { xs: "100%", md: 480 },
-                    height: "100%",
+
+                    // 👇 CLAVE: que el Paper se estire de verdad
+                    flex: 1,
+                    minHeight: 0,
+
                     display: "flex",
                     flexDirection: "column",
-                    borderRadius: { xs: 0, md: 2 },
                     overflow: "hidden",
-                    pb: "env(safe-area-inset-bottom)",
+                    borderRadius: { xs: 0, md: 2 },
                 }}
             >
                 {/* Header del chat */}
                 <Box
                     sx={{
+                        flexShrink: 0, // 👈 CLAVE: no se achica
                         display: "flex",
                         alignItems: "center",
                         gap: 1.5,
@@ -160,19 +164,18 @@ export default function Chat() {
                             border: "2px solid rgba(255,255,255,0.6)",
                         }}
                     />
-
                     <Typography variant="subtitle1" fontWeight={500}>
                         {tenant.name}
                     </Typography>
                 </Box>
 
-                <ChatContainer
-                    messages={messages}
-                    isTyping={isTyping}
-                />
+                {/* 👇 Este debe ocupar el espacio sobrante */}
+                <ChatContainer messages={messages} isTyping={isTyping} />
 
+                {/* 👇 Este debe quedar pegado abajo */}
                 <ChatInput onSend={handleSend} />
             </Paper>
         </Box>
     );
+
 }

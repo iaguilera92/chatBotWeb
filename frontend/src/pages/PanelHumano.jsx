@@ -10,6 +10,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import InputBase from "@mui/material/InputBase";
 import SendIcon from "@mui/icons-material/Send";
 import IniciarConversacion from "./IniciarConversacion";
+import { useTheme } from "@mui/material/styles";
 
 export default function PanelHumano() {
     const isMobile = useMediaQuery("(max-width:768px)");
@@ -23,6 +24,7 @@ export default function PanelHumano() {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const isHumanMode = chat?.mode === "human";
     const [openNuevaConv, setOpenNuevaConv] = useState(false);
+    const theme = useTheme();
 
     const nuevosContactos = conversations.filter(
         (c) => !c.mode && (!c.messages || c.messages.length <= 1)
@@ -292,13 +294,14 @@ export default function PanelHumano() {
 
         <Box
             sx={{
+                height: "100%",
+                width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                height: isMobile ? "100dvh" : "calc(100vh - 64px)",
-                background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
-                overflowX: "hidden",     // 👈 CLAVE
+                overflow: "hidden",     // 🚫 scroll global
             }}
         >
+
             {/* INDICADORES */}
             <Box
                 sx={{

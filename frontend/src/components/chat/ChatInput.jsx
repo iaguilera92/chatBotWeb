@@ -14,13 +14,14 @@ export default function ChatInput({ onSend }) {
     return (
         <Box
             sx={{
+                flexShrink: 0,     // 👈 NUNCA se encoge
+                height: 64,        // 👈 ALTURA FIJA (recomendado)
                 display: "flex",
-                alignItems: "flex-end",
+                alignItems: "center",
                 gap: 1,
-                px: 1.25,
-                py: 0.75,
+                px: 1.5,
                 borderTop: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
+                backgroundColor: "#fff",
             }}
         >
             <TextField
