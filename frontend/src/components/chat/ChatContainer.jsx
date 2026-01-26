@@ -6,23 +6,29 @@ import TypingIndicator from "./TypingIndicator";
 export default function ChatContainer({ messages, isTyping }) {
     const bottomRef = useRef(null);
 
-    // 🔽 Auto-scroll cuando cambian mensajes o typing
+    // ⚠️ iOS-safe autoscroll
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        bottomRef.current?.scrollIntoView({
+            behavior: isTyping ? "auto" : "smooth",
+            block: "end",
+        });
     }, [messages, isTyping]);
 
     return (
         <Box
             sx={{
                 flex: 1,
-                p: 2,
+                px: { xs: 1, md: 2 },
+                py: { xs: 0.5, md: 2 },
                 overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
                 backgroundColor: "#efeae2",
                 backgroundImage:
                     "linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%)",
                 backgroundSize: "40px 40px",
             }}
         >
+
             {messages
                 .filter(
                     msg =>
@@ -42,10 +48,9 @@ export default function ChatContainer({ messages, isTyping }) {
                     />
                 ))}
 
-
             {isTyping && <TypingIndicator />}
 
-            {/* 🔽 ANCLA DE SCROLL */}
+            {/* 🔽 Scroll anchor */}
             <div ref={bottomRef} />
         </Box>
     );

@@ -88,6 +88,7 @@ export default function PanelHumano() {
             sx={{
                 display: "flex",
                 height: isMobile ? "100dvh" : "calc(100vh - 64px)",
+
                 overflow: "hidden",
                 background:
                     "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
@@ -673,6 +674,49 @@ export default function PanelHumano() {
 
                 </DialogActions>
             </Dialog>
+            {!chat && (
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    sx={{
+                        position: "absolute",
+                        bottom: 24,
+                        left: 0,
+                        right: 0,                // 👈 CLAVE
+                        display: "flex",
+                        justifyContent: "center",
+                        zIndex: 5,
+                        pointerEvents: "none",
+                    }}
+                >
+                    <Box
+                        sx={{
+                            px: 3.5,
+                            py: 1.6,
+                            borderRadius: 3,
+                            background: "linear-gradient(135deg, #1f2937, #111827)",
+                            boxShadow: "0 20px 40px rgba(0,0,0,.35)",
+                            border: "1px solid #374151",
+                        }}
+                    >
+                        <Typography
+                            sx={{
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: "#e5e7eb",
+                                whiteSpace: "nowrap",
+                                letterSpacing: 0.3,
+                            }}
+                        >
+                            Selecciona una conversación para comenzar
+                        </Typography>
+                    </Box>
+                </Box>
+            )}
+
         </Box>
+
     );
 }

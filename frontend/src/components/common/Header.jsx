@@ -1,20 +1,13 @@
 import { useState } from "react";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Button,
-  IconButton,
-  Drawer,
-  List,
-  ListItemButton,
-  ListItemText,
-  useMediaQuery,
-} from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Button, IconButton, Drawer, List, ListItemButton, ListItemText, useMediaQuery, ListItemIcon } from "@mui/material";
+import ChatIcon from "@mui/icons-material/SmartToy";
+import HumanIcon from "@mui/icons-material/HeadsetMic";
+import AddIcon from "@mui/icons-material/Add";
+import Divider from "@mui/material/Divider";
 import MenuIcon from "@mui/icons-material/Menu";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function Header() {
   const location = useLocation();
@@ -162,26 +155,70 @@ export default function Header() {
       </AppBar>
 
       {/* DRAWER MOBILE */}
-      <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={() => setOpen(false)}
+        PaperProps={{
+          sx: {
+            width: 280,
+            borderTopLeftRadius: 16,
+            borderBottomLeftRadius: 16,
+            pb: "env(safe-area-inset-bottom)",
+          },
+        }}
+      >
         <Box
           sx={{
-            width: 260,
             height: "100%",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            py: 1,
           }}
         >
+          {/* HEADER */}
+          <Box
+            sx={{
+              px: 2,
+              py: 1.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: "#111827",
+              color: "white",
+            }}
+          >
+            <Typography fontSize="0.9rem" fontWeight={600}>
+              Menú
+            </Typography>
+
+            <IconButton
+              onClick={() => setOpen(false)}
+              sx={{ color: "white" }}
+              component={motion.button}
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 720 }} // 👈 2 vueltas
+              transition={{
+                duration: 0.8,
+                ease: "easeOut",
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+
+          </Box>
+
           {/* MENÚ */}
-          <List>
+          <List sx={{ flex: 1, pt: 1 }}>
             <ListItemButton
               component={Link}
               to="/"
               selected={isChat}
               onClick={() => setOpen(false)}
             >
-              <ListItemText primary="🤖 Chat BOT" />
+              <ListItemIcon>
+                <ChatIcon color={isChat ? "success" : "action"} />
+              </ListItemIcon>
+              <ListItemText primary="Chat BOT" />
             </ListItemButton>
 
             <ListItemButton
@@ -190,7 +227,10 @@ export default function Header() {
               selected={isPanel}
               onClick={() => setOpen(false)}
             >
-              <ListItemText primary="👤 Panel Humano" />
+              <ListItemIcon>
+                <HumanIcon color={isPanel ? "success" : "action"} />
+              </ListItemIcon>
+              <ListItemText primary="Panel Humano" />
             </ListItemButton>
 
             <ListItemButton
@@ -199,15 +239,20 @@ export default function Header() {
               selected={isStart}
               onClick={() => setOpen(false)}
             >
-              <ListItemText primary="➕ Iniciar conversación" />
+              <ListItemIcon>
+                <AddIcon color={isStart ? "success" : "action"} />
+              </ListItemIcon>
+              <ListItemText primary="Iniciar conversación" />
             </ListItemButton>
           </List>
 
-          {/* ESTADO IA (DECORATIVO) */}
+          <Divider />
+
+          {/* ESTADO IA */}
           <Box
             sx={{
               px: 2,
-              pb: 2,
+              py: 1.5,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -215,14 +260,7 @@ export default function Header() {
               opacity: 0.85,
             }}
           >
-            <Typography
-              sx={{
-                fontSize: "0.75rem",
-                letterSpacing: 0.4,
-              }}
-            >
-              IA Activa
-            </Typography>
+            <Typography fontSize="0.75rem">IA Activa</Typography>
 
             <Box sx={{ display: "flex", gap: 0.6 }}>
               {[0, 1, 2].map((i) => (

@@ -1,13 +1,16 @@
 import { Box, Paper, Typography } from "@mui/material";
-import { useTenant } from "../context/TenantContext";
 import { useState } from "react";
+
+import { useTenant } from "../context/TenantContext";
 import ChatContainer from "../components/chat/ChatContainer";
 import ChatInput from "../components/chat/ChatInput";
 
 export default function Chat() {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const API_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     const tenant = useTenant();
+
     const [isTyping, setIsTyping] = useState(false);
     const [lead, setLead] = useState({
         offer: null,
@@ -15,10 +18,10 @@ export default function Chat() {
         business: null,
         sent: false,
     });
-    const [messages, setMessages] = useState([
-        { from: "bot", text: tenant.welcomeMessage }
-    ]);
 
+    const [messages, setMessages] = useState([
+        { from: "bot", text: tenant.welcomeMessage },
+    ]);
 
     const handleSend = async (text) => {
         const userMessage = {
@@ -29,16 +32,25 @@ export default function Chat() {
 
         // 🧠 Detectar selección de oferta
         if (/oferta\s*1|la\s*1|opción\s*1/i.test(text)) {
-            setLead(prev => ({ ...prev, offer: "Oferta 1 - Pago único" }));
+            setLead((prev) => ({
+                ...prev,
+                offer: "Oferta 1 - Pago único",
+            }));
         }
 
         if (/oferta\s*2|la\s*2|opción\s*2/i.test(text)) {
-            setLead(prev => ({ ...prev, offer: "Oferta 2 - Suscripción mensual" }));
+            setLead((prev) => ({
+                ...prev,
+                offer: "Oferta 2 - Suscripción mensual",
+            }));
         }
 
         // 📧 Detectar correo
         if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-            setLead(prev => ({ ...prev, email: text }));
+            setLead((prev) => ({
+                ...prev,
+                email: text,
+            }));
         }
 
         // 🏷️ Detectar nombre del negocio (solo después del correo)
@@ -47,7 +59,10 @@ export default function Chat() {
             !lead.business &&
             !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)
         ) {
-            setLead(prev => ({ ...prev, business: text }));
+            setLead((prev) => ({
+                ...prev,
+                business: text,
+            }));
         }
 
         // 🔑 Construir historial
@@ -60,22 +75,22 @@ export default function Chat() {
         try {
             const res = await fetch(`${API_URL}/api/chat`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ messages: updatedMessages }),
             });
 
             const data = await res.json();
-
             const replies = Array.isArray(data.replies)
                 ? data.replies
                 : [];
 
-
             setIsTyping(false);
 
-            setMessages(prev => [
+            setMessages((prev) => [
                 ...prev,
-                ...replies.map(r => ({
+                ...replies.map((r) => ({
                     from: "bot",
                     text: r.text,
                     image: r.image,
@@ -83,12 +98,9 @@ export default function Chat() {
                     timestamp: new Date(),
                 })),
             ]);
-
-
-
         } catch (e) {
             setIsTyping(false);
-            setMessages(prev => [
+            setMessages((prev) => [
                 ...prev,
                 {
                     from: "bot",
@@ -99,30 +111,29 @@ export default function Chat() {
         }
     };
 
-
-
     return (
         <Box
             sx={{
-                width: "100vw",
-                minHeight: "calc(100vh - 64px)", // altura menos header
+                width: "100%",
+                height: "calc(100dvh - env(safe-area-inset-top) - 56px)",
                 display: "flex",
                 justifyContent: "center",
-                alignItems: "center",
+                alignItems: "stretch",
                 backgroundColor: "#f5f7fb",
-                px: 2
+                px: 0,
             }}
         >
             <Paper
-                elevation={8}
+                elevation={0}
                 sx={{
                     width: "100%",
-                    maxWidth: 480,          // 👈 ancho real tipo WhatsApp
-                    height: "80vh",
+                    maxWidth: { xs: "100%", md: 480 },
+                    height: "100%",
                     display: "flex",
                     flexDirection: "column",
-                    borderRadius: 2,
-                    overflow: "hidden"
+                    borderRadius: { xs: 0, md: 2 },
+                    overflow: "hidden",
+                    pb: "env(safe-area-inset-bottom)",
                 }}
             >
                 {/* Header del chat */}
@@ -133,8 +144,8 @@ export default function Chat() {
                         gap: 1.5,
                         px: 2,
                         py: 1.5,
-                        backgroundColor: "#075e54", // WhatsApp green
-                        color: "white"
+                        backgroundColor: "#075e54",
+                        color: "white",
                     }}
                 >
                     <Box
@@ -146,17 +157,19 @@ export default function Chat() {
                             height: 36,
                             borderRadius: "50%",
                             objectFit: "cover",
-                            border: "2px solid rgba(255,255,255,0.6)"
+                            border: "2px solid rgba(255,255,255,0.6)",
                         }}
                     />
-
 
                     <Typography variant="subtitle1" fontWeight={500}>
                         {tenant.name}
                     </Typography>
                 </Box>
 
-                <ChatContainer messages={messages} isTyping={isTyping} />
+                <ChatContainer
+                    messages={messages}
+                    isTyping={isTyping}
+                />
 
                 <ChatInput onSend={handleSend} />
             </Paper>
