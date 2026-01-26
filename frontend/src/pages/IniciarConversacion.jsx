@@ -1,6 +1,5 @@
 import {
     Box,
-    Paper,
     Typography,
     TextField,
     Button,
@@ -11,8 +10,8 @@ import {
 import { useState } from "react";
 import { sendHumanMessage } from "../services/operator.api";
 
-export default function IniciarConversacion() {
-    const [phone, setPhone] = useState("56946873014");
+export default function IniciarConversacion({ onClose }) {
+    const [phone, setPhone] = useState("");
     const [message, setMessage] = useState("");
     const [sending, setSending] = useState(false);
     const [alert, setAlert] = useState({
@@ -33,6 +32,9 @@ export default function IniciarConversacion() {
                 type: "success",
                 message: "Mensaje enviado por WhatsApp",
             });
+
+            // 👇 cerrar dialog luego de enviar
+            setTimeout(() => onClose?.(), 600);
         } catch (err) {
             setAlert({
                 open: true,
@@ -45,84 +47,54 @@ export default function IniciarConversacion() {
     };
 
     return (
-        <Box
-            sx={{
-                width: "100%",
-                minHeight: { xs: "calc(100dvh - 56px)", md: "calc(100vh - 64px)" },
-                display: "flex",
-                justifyContent: "center",
-                alignItems: { xs: "stretch", md: "center" },
-                backgroundColor: "#f5f7fb",
-                px: { xs: 0, md: 2 },
-            }}
-        >
-            <Paper
-                elevation={6}
-                sx={{
-                    width: "100%",
-                    maxWidth: 420,
-                    height: { xs: "100%", md: "auto" },
-                    p: { xs: 2, md: 3 },
-                    borderRadius: { xs: 0, md: 2 },
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                }}
-            >
-                <Typography
-                    variant="h6"
-                    fontWeight={600}
-                    mb={0.5}
-                >
-                    Iniciar conversación
-                </Typography>
+        <>
+            <Typography fontWeight={600} fontSize={18} mb={0.5}>
+                Iniciar conversación
+            </Typography>
 
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    mb={2}
-                >
-                    Enviar un mensaje manual por WhatsApp
-                </Typography>
+            <Typography fontSize={13} color="text.secondary" mb={2}>
+                Enviar un mensaje manual por WhatsApp
+            </Typography>
 
-                <Stack spacing={2}>
-                    <TextField
-                        label="Teléfono del cliente"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        fullWidth
-                        inputProps={{ inputMode: "numeric" }}
-                    />
+            <Stack spacing={2}>
+                <TextField
+                    label="Teléfono del cliente"
+                    placeholder="+56 9 1234 5678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    fullWidth
+                    inputProps={{ inputMode: "numeric" }}
+                />
 
-                    <TextField
-                        label="Mensaje"
-                        multiline
-                        minRows={3}
-                        maxRows={5}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        fullWidth
-                    />
+                <TextField
+                    label="Mensaje"
+                    multiline
+                    minRows={3}
+                    maxRows={5}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    fullWidth
+                />
+
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button onClick={onClose} color="inherit">
+                        Cancelar
+                    </Button>
 
                     <Button
                         variant="contained"
-                        size="large"
                         disabled={sending}
                         onClick={handleSend}
                         sx={{
-                            mt: 1,
-                            py: 1.2,
                             backgroundColor: "#075e54",
                             fontWeight: 600,
-                            "&:hover": {
-                                backgroundColor: "#064c45",
-                            },
+                            "&:hover": { backgroundColor: "#064c45" },
                         }}
                     >
-                        {sending ? "Enviando…" : "Enviar por WhatsApp"}
+                        {sending ? "Enviando…" : "Enviar"}
                     </Button>
                 </Stack>
-            </Paper>
+            </Stack>
 
             <Snackbar
                 open={alert.open}
@@ -138,6 +110,6 @@ export default function IniciarConversacion() {
                     {alert.message}
                 </Alert>
             </Snackbar>
-        </Box>
+        </>
     );
 }

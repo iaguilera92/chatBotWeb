@@ -16,7 +16,6 @@ export default function Header() {
 
   const isChat = location.pathname === "/";
   const isPanel = location.pathname === "/panel-humano";
-  const isStart = location.pathname === "/iniciar-conversacion";
 
   return (
     <>
@@ -79,22 +78,6 @@ export default function Header() {
                 }}
               >
                 Panel Humano
-              </Button>
-
-              <Button
-                component={Link}
-                to="/iniciar-conversacion"
-                size="small"
-                sx={{
-                  color: "white",
-                  fontWeight: isStart ? 600 : 400,
-                  borderBottom: isStart
-                    ? "2px solid #22c55e"
-                    : "2px solid transparent",
-                  borderRadius: 0,
-                }}
-              >
-                Iniciar conversación
               </Button>
             </Box>
           )}
@@ -231,18 +214,6 @@ export default function Header() {
                 <HumanIcon color={isPanel ? "success" : "action"} />
               </ListItemIcon>
               <ListItemText primary="Panel Humano" />
-            </ListItemButton>
-
-            <ListItemButton
-              component={Link}
-              to="/iniciar-conversacion"
-              selected={isStart}
-              onClick={() => setOpen(false)}
-            >
-              <ListItemIcon>
-                <AddIcon color={isStart ? "success" : "action"} />
-              </ListItemIcon>
-              <ListItemText primary="Iniciar conversación" />
             </ListItemButton>
           </List>
 

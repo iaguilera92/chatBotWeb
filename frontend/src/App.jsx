@@ -5,7 +5,6 @@ import Chat from "./pages/Chat";
 import PanelHumano from "./pages/PanelHumano";
 import { TenantProvider } from "./context/TenantContext";
 import demoEmpresa from "./config/demoEmpresa";
-import IniciarConversacion from "./pages/IniciarConversacion";
 
 function App() {
   return (
@@ -16,7 +15,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Chat />} />
           <Route path="/panel-humano" element={<PanelHumano />} />
-          <Route path="/iniciar-conversacion" element={<IniciarConversacion />} />
         </Routes>
       </BrowserRouter>
     </TenantProvider>

@@ -1,10 +1,15 @@
 import { useEffect, useState, useRef } from "react";
-import { Box, Paper, Typography, List, ListItemButton, TextField, Button, Stack, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, } from "@mui/material";
+import { IconButton, Box, Paper, Typography, List, ListItemButton, TextField, Button, Stack, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, } from "@mui/material";
 import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api";
 import { sendHumanMessage } from "../services/operator.api";
 import TuneIcon from "@mui/icons-material/Tune";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-
+import { motion } from "framer-motion";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import PersonIcon from "@mui/icons-material/Person";
+import InputBase from "@mui/material/InputBase";
+import SendIcon from "@mui/icons-material/Send";
+import IniciarConversacion from "./IniciarConversacion";
 
 export default function PanelHumano() {
     const isMobile = useMediaQuery("(max-width:768px)");
@@ -17,15 +22,32 @@ export default function PanelHumano() {
     const [selectedPhone, setSelectedPhone] = useState(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const isHumanMode = chat?.mode === "human";
-    const nuevosLeads = conversations.filter(
+    const [openNuevaConv, setOpenNuevaConv] = useState(false);
+
+    const nuevosContactos = conversations.filter(
         (c) => !c.mode && (!c.messages || c.messages.length <= 1)
     ).length;
 
-    const potencialesLeads = conversations.filter(
-        (c) => c.mode !== "human" && c.messages && c.messages.length > 1
+    const clientesEnEspera = conversations.filter(
+        (c) => c.needsHuman && c.mode !== "human"
     ).length;
 
-    const totalChats = conversations.length;
+    const conversacionesAtendidas = conversations.filter(
+        (c) => c.mode === "human"
+    ).length;
+    const [shakeEnEspera, setShakeEnEspera] = useState(false);
+    const conversationsSorted = [...conversations].sort((a, b) => {
+        // Prioridad: needsHuman primero
+        if (a.needsHuman && !b.needsHuman) return -1;
+        if (!a.needsHuman && b.needsHuman) return 1;
+
+        // Luego por fecha (más reciente arriba)
+        const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return db - da;
+    });
+
+    const shakeTimerRef = useRef(null);
 
     useEffect(() => {
         const load = () => getConversations().then(setConversations);
@@ -71,64 +93,196 @@ export default function PanelHumano() {
         const data = await getConversation(activePhone);
         setChat(data);
     }
-    function Indicador({ label, value, color, bg }) {
-        const mv = useMotionValue(0);
-        const rounded = useTransform(mv, (v) => Math.round(v));
 
-        useEffect(() => {
-            const controls = animate(mv, value, {
-                duration: 0.5,
-                ease: "easeOut",
-            });
-            return controls.stop;
-        }, [value]);
 
+    function Step({ value, label, color, bg, highlight }) {
         return (
-            <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                style={{ flex: "0 0 auto" }}
+            <Box
+                sx={{
+                    flex: 1,
+                    height: 56,
+                    px: 1,
+                    borderRadius: 3,
+                    background: bg,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                    boxShadow: highlight
+                        ? "0 0 0 2px rgba(220,38,38,.25), 0 8px 20px rgba(0,0,0,.12)"
+                        : "0 6px 16px rgba(0,0,0,.08)",
+                }}
             >
-                <Box
+                <Typography
                     sx={{
-                        px: 1.5,
-                        py: 1,
-                        maxWidth: 96,            // 👈 CLAVE
-                        borderRadius: 2.5,
-                        background: bg,
-                        border: "1px solid rgba(0,0,0,.06)",
-                        position: "relative",
-                        overflow: "hidden",
+                        fontSize: 20,
+                        fontWeight: 900,
+                        color,
+                        lineHeight: 1,
                     }}
                 >
-                    <Typography
-                        sx={{
-                            fontSize: 9,           // 👈 más chico
-                            fontWeight: 700,
-                            color: "#374151",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.4,
-                            lineHeight: 1,
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        {label}
-                    </Typography>
+                    {value}
+                </Typography>
 
-                    <Typography
-                        sx={{
-                            fontSize: 22,          // 👈 compacto pero visible
-                            fontWeight: 900,
-                            color,
-                            lineHeight: 1.05,
-                        }}
-                    >
-                        <motion.span>{rounded}</motion.span>
-                    </Typography>
+                <Box sx={{ mt: 0.4, textAlign: "center" }}>
+                    {label.split(" ").slice(0, 2).map((w, i) => (
+                        <Typography
+                            key={i}
+                            sx={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                letterSpacing: 0.3,
+                                lineHeight: 1.05,
+                                textTransform: "uppercase",
+                                color: "#374151",
+                            }}
+                        >
+                            {w}
+                        </Typography>
+                    ))}
                 </Box>
-            </motion.div>
+            </Box>
+        );
+    }
+
+    function Arrow({ active }) {
+        return (
+            <Box
+                component={motion.div}
+                animate={
+                    active
+                        ? { opacity: [0.4, 1, 0.4] }
+                        : { opacity: 0.35 }
+                }
+                transition={{
+                    repeat: active ? Infinity : 0,
+                    duration: 1.6,
+                    ease: "easeInOut",
+                }}
+                sx={{
+                    mx: 0.6,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: active ? "#dc2626" : "#9ca3af",
+                    lineHeight: 1,
+                }}
+            >
+                →
+            </Box>
+        );
+    }
+
+
+    useEffect(() => {
+        if (shakeTimerRef.current) {
+            clearInterval(shakeTimerRef.current);
+            shakeTimerRef.current = null;
+        }
+
+        if (clientesEnEspera <= 0) {
+            setShakeEnEspera(false);
+            return;
+        }
+
+        const triggerShake = () => {
+            setShakeEnEspera(true);
+            setTimeout(() => setShakeEnEspera(false), 1000);
+        };
+
+        // 🔔 vibra de inmediato
+        triggerShake();
+
+        // 🔁 vibra cada 5 segundos
+        shakeTimerRef.current = setInterval(triggerShake, 5000);
+
+        return () => {
+            if (shakeTimerRef.current) {
+                clearInterval(shakeTimerRef.current);
+                shakeTimerRef.current = null;
+            }
+        };
+    }, [clientesEnEspera]);
+
+
+    function IndicadorFunnel({
+        nuevos,
+        enEspera,
+        atendidos,
+        shakeEnEspera, // 👈 FALTA ESTO
+    }) {
+        return (
+            <Box
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    width: "100%",
+                    gap: 0.2,
+                }}
+            >
+                <Step
+                    value={nuevos}
+                    label="Nuevos Contactos"
+                    color="#2563eb"
+                    bg="linear-gradient(135deg,#eff6ff,#dbeafe)"
+                />
+
+                <Arrow active={enEspera > 0} />
+
+                <Box
+                    key={shakeEnEspera ? `shake-${Date.now()}` : "idle"}
+                    component={motion.div}
+                    initial={{ rotate: 0, skewX: 0, skewY: 0 }}
+                    animate={{
+                        rotate: [-1.2, 1.2, -0.9, 0.9, -0.5, 0.5, 0],
+                        skewX: [0.8, -0.8, 0.6, -0.6, 0.3, -0.3, 0],
+                        skewY: [-0.8, 0.8, -0.6, 0.6, -0.3, 0.3, 0],
+                    }}
+                    transition={{ duration: 0.9, ease: "easeInOut" }}
+                    style={{ flex: 1, position: "relative", transformOrigin: "center center" }}
+                >
+                    {/* 🔴 OVERLAY DE ALERTA (intensifica fondo) */}
+                    <Box
+                        sx={{
+                            position: "absolute",
+                            inset: 0,
+                            borderRadius: 3,
+                            background:
+                                "rgba(220,38,38,.18)",
+                            opacity: shakeEnEspera ? 1 : 0,
+                            transition: "opacity .25s ease",
+                            pointerEvents: "none",
+                            zIndex: 1,
+                        }}
+                    />
+
+                    {/* CONTENIDO REAL */}
+                    <Box sx={{ position: "relative", zIndex: 2 }}>
+                        <Step
+                            value={enEspera}
+                            label="En Espera"
+                            color="#dc2626"
+                            bg="linear-gradient(135deg,#fee2e2,#fecaca)"
+                        />
+                    </Box>
+                </Box>
+
+
+
+                <Arrow active={enEspera > 0} />
+
+                <Step
+                    value={atendidos}
+                    label="Clientes Atendidos"
+                    color={clientesEnEspera > 0 ? "#6b7280" : "#059669"}
+                    bg={
+                        clientesEnEspera > 0
+                            ? "linear-gradient(135deg,#f9fafb,#f3f4f6)"
+                            : "linear-gradient(135deg,#ecfdf5,#d1fae5)"
+                    }
+                />
+
+            </Box>
         );
     }
 
@@ -151,40 +305,16 @@ export default function PanelHumano() {
                     px: 3,
                     py: 2,
                     borderBottom: "1px solid #e5e7eb",
-                    background:
-                        "linear-gradient(180deg, #ffffff, #f8fafc)",
+                    background: "linear-gradient(180deg,#ffffff,#f8fafc)",
                 }}
             >
-                <Stack
-                    direction="row"
-                    spacing={1}                  // 👈 menos separación
-                    justifyContent="center"
-                    alignItems="center"
-                    flexWrap="nowrap"
-                    sx={{ overflow: "hidden" }}
-                >
+                <IndicadorFunnel
+                    nuevos={nuevosContactos}
+                    enEspera={clientesEnEspera}
+                    atendidos={conversacionesAtendidas}
+                    shakeEnEspera={shakeEnEspera}
+                />
 
-                    <Indicador
-                        label="Nuevos Leads"
-                        value={nuevosLeads}
-                        color="#2563eb"
-                        bg="linear-gradient(135deg, #eff6ff, #dbeafe)"
-                    />
-
-                    <Indicador
-                        label="Potenciales Leads"
-                        value={potencialesLeads}
-                        color="#d97706"
-                        bg="linear-gradient(135deg, #fffbeb, #fef3c7)"
-                    />
-
-                    <Indicador
-                        label="Total Chats"
-                        value={totalChats}
-                        color="#059669"
-                        bg="linear-gradient(135deg, #ecfdf5, #d1fae5)"
-                    />
-                </Stack>
             </Box>
 
 
@@ -214,20 +344,73 @@ export default function PanelHumano() {
                             py: 1.5,
                             borderBottom: "1px solid #e5e7eb",
                             background: "linear-gradient(180deg, #f8fafc, #ffffff)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1,
                         }}
                     >
-                        <Typography fontWeight={600}>
-                            Conversaciones
-                        </Typography>
-                        <Typography fontSize={12} color="text.secondary">
-                            {conversations.length} activas · actualización automática
-                        </Typography>
+                        {/* IZQUIERDA */}
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography fontWeight={600} noWrap>
+                                Conversaciones
+                            </Typography>
+                            <Typography fontSize={12} color="text.secondary" noWrap>
+                                {clientesEnEspera > 0
+                                    ? `${clientesEnEspera} en espera · atención requerida`
+                                    : `${conversations.length} activas · sin pendientes`}
+                            </Typography>
+                        </Box>
+
+                        {/* DERECHA */}
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                                textTransform: "none",
+                                fontWeight: 700,
+                                fontSize: 13,
+                                borderRadius: 999,
+                                px: 2.2,
+                                whiteSpace: "nowrap",
+
+                                color: "#312e81",
+                                borderColor: "#c7d2fe",
+                                background: "linear-gradient(135deg,#eef2ff,#f8fafc)",
+                                boxShadow: "0 2px 6px rgba(0,0,0,.08)",
+
+                                "&:hover": {
+                                    background: "linear-gradient(135deg,#e0e7ff,#eef2ff)",
+                                    borderColor: "#818cf8",
+                                    boxShadow: "0 0 0 3px rgba(99,102,241,.25)",
+                                },
+                            }}
+                            onClick={() => setOpenNuevaConv(true)}
+                            startIcon={
+                                <Box
+                                    sx={{
+                                        fontSize: 18,
+                                        fontWeight: 900,
+                                        lineHeight: 1,
+                                    }}
+                                >
+                                    +
+                                </Box>
+                            }
+                        >
+
+                            Iniciar conversación
+                        </Button>
+
+
                     </Box>
 
+
                     <List sx={{ p: 1, overflowY: "auto", flex: 1 }}>
-                        {conversations.map((c) => {
+                        {conversationsSorted.map((c) => {
                             const isHuman = c.mode === "human";
                             const selected = c.phone === activePhone;
+                            const needsAttention = c.needsHuman && !isHuman;
 
                             const minutesAgo = c.lastMessageAt
                                 ? Math.floor(
@@ -249,7 +432,16 @@ export default function PanelHumano() {
                                         position: "relative",
                                         backgroundColor: selected
                                             ? "#eef2ff"
-                                            : "transparent",
+                                            : needsAttention
+                                                ? "#fef2f2"   // 👈 fondo alerta suave
+                                                : "transparent",
+
+                                        "&:hover": {
+                                            backgroundColor: needsAttention
+                                                ? "#fee2e2"
+                                                : "#f1f5f9",
+                                        },
+
                                         "&::before": {
                                             content: '""',
                                             position: "absolute",
@@ -258,30 +450,49 @@ export default function PanelHumano() {
                                             bottom: 8,
                                             width: 3,
                                             borderRadius: 2,
-                                            backgroundColor: isHuman
-                                                ? "#10b981"
-                                                : "#3b82f6",
-                                            opacity: selected ? 1 : 0.4,
+                                            backgroundColor: needsAttention
+                                                ? "#dc2626"
+                                                : isHuman
+                                                    ? "#10b981"
+                                                    : "#3b82f6",
+                                            opacity: selected ? 1 : 0.7,
                                         },
                                     }}
+
                                 >
-                                    <Box
-                                        sx={{
-                                            width: 36,
-                                            height: 36,
-                                            borderRadius: "50%",
-                                            background:
-                                                "linear-gradient(135deg, #e0e7ff, #f8fafc)",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontWeight: 700,
-                                            fontSize: 13,
-                                            mr: 1.5,
-                                        }}
-                                    >
-                                        {c.phone.slice(-2)}
+                                    <Box sx={{ position: "relative", mr: 1.5 }}>
+                                        <Box
+                                            sx={{
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: "50%",
+                                                background: "linear-gradient(135deg, #e0e7ff, #f8fafc)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                fontWeight: 700,
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            {c.phone.slice(-2)}
+                                        </Box>
+
+                                        {needsAttention && (
+                                            <Box
+                                                sx={{
+                                                    position: "absolute",
+                                                    bottom: -1,
+                                                    right: -1,
+                                                    width: 10,
+                                                    height: 10,
+                                                    borderRadius: "50%",
+                                                    backgroundColor: "#dc2626",
+                                                    border: "2px solid #fff",
+                                                }}
+                                            />
+                                        )}
                                     </Box>
+
 
                                     <Box sx={{ flex: 1 }}>
                                         <Typography fontWeight={500}>
@@ -340,47 +551,88 @@ export default function PanelHumano() {
                         {/* HEADER */}
                         <Box
                             sx={{
-                                p: 2,
+                                px: 2,
+                                py: 1.5,
                                 borderBottom: "1px solid #e5e7eb",
                                 background: "#ffffff",
                                 position: "sticky",
                                 top: 0,
                                 zIndex: 2,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 1,
                             }}
                         >
-                            {isMobile && (
+                            {/* IZQUIERDA */}
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                                {isMobile && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            setChat(null);
+                                            setActivePhone(null);
+                                        }}
+                                    >
+                                        <ArrowBackIosNewIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+
+                                <Box>
+                                    <Typography fontWeight={600} lineHeight={1.1}>
+                                        {chat.phone}
+                                    </Typography>
+
+                                    <Box
+                                        sx={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 0.6,
+                                            mt: 0.3,
+                                            px: 1,
+                                            py: 0.2,
+                                            borderRadius: 1,
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            backgroundColor: isHumanMode ? "#ecfdf5" : "#eff6ff",
+                                            color: isHumanMode ? "#065f46" : "#1e40af",
+                                        }}
+                                    >
+                                        {isHumanMode ? (
+                                            <>
+                                                <PersonIcon sx={{ fontSize: 14 }} />
+                                                CONTROL HUMANO
+                                            </>
+                                        ) : (
+                                            <>
+                                                <SmartToyIcon sx={{ fontSize: 14 }} />
+                                                IA ACTIVA
+                                            </>
+                                        )}
+                                    </Box>
+                                </Box>
+                            </Box>
+
+                            {/* DERECHA */}
+                            {isHumanMode && (
                                 <Button
                                     size="small"
-                                    onClick={() => {
-                                        setChat(null);
-                                        setActivePhone(null);
+                                    variant="outlined"
+                                    color="warning"
+                                    onClick={release}
+                                    sx={{
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        px: 1.8,
+                                        whiteSpace: "nowrap",
                                     }}
                                 >
-                                    ← Volver
+                                    Devolver a IA
                                 </Button>
                             )}
-                            <Typography fontWeight={600}>{chat.phone}</Typography>
-                            <Typography
-                                fontSize={12}
-                                color={
-                                    isHumanMode
-                                        ? "success.main"
-                                        : "info.main"
-                                }
-                            >
-                                {isHumanMode
-                                    ? "Control humano activo"
-                                    : "IA operando"}
-                            </Typography>
-                            <Button
-                                size="small"
-                                color="warning"
-                                onClick={release}
-                                sx={{ mt: 1 }}
-                            >
-                                Devolver a IA
-                            </Button>
                         </Box>
+
 
                         {/* MENSAJES */}
                         <Box
@@ -435,45 +687,92 @@ export default function PanelHumano() {
                         {/* INPUT */}
                         <Box
                             sx={{
-                                p: 1.5,
-                                background: "#ffffff",
+                                px: 1.5,
+                                py: 1.2,
+                                background: "linear-gradient(180deg,#ffffff,#f8fafc)",
                                 borderTop: "1px solid #e5e7eb",
                                 position: "sticky",
                                 bottom: 0,
                             }}
                         >
-                            <Stack direction="row" spacing={1}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    maxRows={4}
-                                    placeholder="Responder…"
-                                    value={message}
-                                    onChange={(e) =>
-                                        setMessage(e.target.value)
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (
-                                            e.key === "Enter" &&
-                                            !e.shiftKey
-                                        ) {
-                                            e.preventDefault();
-                                            send();
-                                        }
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                }}
+                            >
+                                {/* TEXT INPUT */}
+                                <Box
+                                    sx={{
+                                        flex: 1,
+                                        height: 44,                 // 👈 MISMA ALTURA
+                                        borderRadius: 999,
+                                        border: "1px solid #e5e7eb",
+                                        background: "#ffffff",
+                                        px: 2,
+                                        display: "flex",
+                                        alignItems: "center",
                                     }}
-                                />
-                                <Button
-                                    variant="contained"
-                                    disabled={sending}
-                                    onClick={send}
                                 >
-                                    Enviar
-                                </Button>
-                            </Stack>
+                                    <InputBase
+                                        multiline
+                                        maxRows={4}
+                                        placeholder="Escribe un mensaje…"
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && !e.shiftKey) {
+                                                e.preventDefault();
+                                                send();
+                                            }
+                                        }}
+                                        sx={{
+                                            width: "100%",
+                                            fontSize: 14,
+                                            lineHeight: 1.4,
+                                        }}
+                                    />
+                                </Box>
+
+                                {/* SEND BUTTON */}
+                                <IconButton
+                                    disabled={sending || !message.trim()}
+                                    onClick={send}
+                                    sx={{
+                                        width: 44,                  // 👈 MISMA ALTURA
+                                        height: 44,
+                                        flexShrink: 0,
+                                        borderRadius: "50%",
+                                        background:
+                                            "linear-gradient(135deg,#2563eb,#1d4ed8)",
+                                        color: "#ffffff",
+                                        boxShadow: "0 4px 10px rgba(37,99,235,.35)",
+
+                                        "&:hover": {
+                                            background:
+                                                "linear-gradient(135deg,#1d4ed8,#1e40af)",
+                                        },
+
+                                        "&.Mui-disabled": {
+                                            background: "#e5e7eb",
+                                            color: "#9ca3af",
+                                            boxShadow: "none",
+                                        },
+                                    }}
+                                >
+                                    <SendIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </Box>
                         </Box>
+
+
                     </Box>
                 )}
 
+
+
+                {/* DIALOG TOMAR CONTROL */}
                 <Dialog
                     open={confirmOpen}
                     onClose={cancelTake}
@@ -778,6 +1077,20 @@ export default function PanelHumano() {
 
                     </DialogActions>
                 </Dialog>
+                {/* DIALOG INICIAR CONVERSACIÓN */}
+                <Dialog
+                    open={openNuevaConv}
+                    onClose={() => setOpenNuevaConv(false)}
+                    maxWidth="xs"
+                    fullWidth
+                    PaperProps={{
+                        sx: { borderRadius: 3, p: 2.5 },
+                    }}
+                >
+                    <IniciarConversacion onClose={() => setOpenNuevaConv(false)} />
+                </Dialog>
+
+
                 {!chat && (
                     <Box
                         component={motion.div}
