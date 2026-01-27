@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { handleChat, UiMessage } from "./services/chat.handler";
+import { handleChat } from "./services/chat.handler";
 import { sendWhatsAppMessage } from "./services/whatsapp.service";
 import {
     saveMessage,
@@ -8,14 +8,24 @@ import {
 } from "./services/conversations.store";
 import { normalizePhone } from "./services/phone.util";
 
+/** Detecta intención de hablar con humano */
 function shouldEscalateToHuman(text: string): boolean {
-    const keywords = ["ejecutivo", "persona", "humano", "agente", "hablar"];
+    const keywords = [
+        "ejecutivo",
+        "persona",
+        "humano",
+        "agente",
+        "hablar",
+        "asesor",
+    ];
     return keywords.some(k => text.toLowerCase().includes(k));
 }
 
 export function whatsappMetaWebhook(app: FastifyInstance) {
 
-    // 🔐 Verificación webhook Meta
+    /* =====================================================
+       🔐 Verificación webhook Meta (OBLIGATORIO)
+    ===================================================== */
     app.get("/webhook/whatsapp/meta", async (req: any, reply) => {
         const mode = req.query["hub.mode"];
         const token = req.query["hub.verify_token"];
@@ -28,12 +38,15 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
         return reply.code(403).send("Forbidden");
     });
 
-    // 📩 Mensajes entrantes
+    /* =====================================================
+       📩 Mensajes entrantes desde WhatsApp
+    ===================================================== */
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
         try {
             const message =
                 req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
+            // Solo texto (por ahora)
             if (!message || message.type !== "text") {
                 return reply.send("EVENT_RECEIVED");
             }
@@ -45,17 +58,26 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 💾 Guardar mensaje del cliente
+            /* =================================================
+               💾 SIEMPRE guardar mensaje del cliente
+               (independiente del modo)
+            ================================================= */
             saveMessage(from, "user", text);
 
             const convo = getConversation(from);
 
-            // 👤 Modo humano → bot silenciado
+            /* =================================================
+               👤 MODO HUMANO
+               - Bot NO responde
+               - Mensajes NO se pierden
+            ================================================= */
             if (convo.mode === "human") {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 🔀 Escalar a humano
+            /* =================================================
+               🔀 Escalar a humano (intención detectada)
+            ================================================= */
             if (shouldEscalateToHuman(text)) {
                 setMode(from, "human");
 
@@ -68,20 +90,22 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 🤖 Construir contexto SOLO para la IA
-            const aiContext = convo.messages
-                .filter(m => m.from === "user" || m.from === "bot")
-                .map(m => ({
-                    from: m.from as "user" | "bot",
-                    text: m.text ?? "",
-                }));
+            /* =================================================
+               🤖 BOT ACTIVO
+            ================================================= */
+            const responseText = await handleChat(
+                getConversation(from).messages
+                    .filter(m => m.from !== "human")
+                    .map(m => ({
+                        from: m.from === "bot" ? "bot" : "user",
+                        text: m.text,
+                    }))
+            );
 
-
-
-            const responseText = await handleChat(aiContext);
-
-            saveMessage(from, "bot", responseText);
-            await sendWhatsAppMessage(from, responseText);
+            if (responseText && responseText.trim()) {
+                saveMessage(from, "bot", responseText);
+                await sendWhatsAppMessage(from, responseText);
+            }
 
             return reply.send("EVENT_RECEIVED");
         } catch (err) {
