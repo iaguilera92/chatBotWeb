@@ -43,11 +43,18 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
     ===================================================== */
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
         try {
-            const message =
-                req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-            // Solo texto (por ahora)
-            if (!message || message.type !== "text") {
+            console.log("📩 WEBHOOK FULL:", JSON.stringify(req.body, null, 2));
+
+            const value = req.body?.entry?.[0]?.changes?.[0]?.value;
+
+            if (!value || !Array.isArray(value.messages)) {
+                return reply.send("EVENT_RECEIVED");
+            }
+
+            const message = value.messages.find((m: any) => m.type === "text");
+
+            if (!message) {
                 return reply.send("EVENT_RECEIVED");
             }
 
