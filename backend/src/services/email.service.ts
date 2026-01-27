@@ -1,26 +1,38 @@
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY!);
+import nodemailer from "nodemailer";
 
 /**
- * Configuración fija del correo
- * (modo TEST Resend)
+ * Transporte SMTP Brevo
  */
-const EMAIL_FROM = "PWBot <onboarding@resend.dev>";
-const EMAIL_CC = "plataformas.web.cl@gmail.com";
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: "a0fb98001@smtp-brevo.com", // 👈 usuario SMTP de Brevo
+    pass: process.env.BREVO_API_KEY!, // 👈 SMTP key (pwbot-final)
+  },
+});
 
-type LeadEmailParams = {
+/**
+ * Tipado estricto del lead
+ */
+export type LeadEmailParams = {
   email: string;
   business: string;
   offer: string;
 };
 
+/**
+ * Envío de correo de lead
+ */
 export async function sendLeadEmail({
   email,
   business,
   offer,
-}: LeadEmailParams) {
+}: LeadEmailParams): Promise<void> {
   const year = new Date().getFullYear();
+
+  console.log("📧 [EMAIL] Enviando correo a:", email);
 
   const html = `
 <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #212121;">
@@ -97,15 +109,13 @@ export async function sendLeadEmail({
 </div>
 `;
 
-  const { error } = await resend.emails.send({
-    from: EMAIL_FROM,
-    to: EMAIL_CC, // modo TEST: solo tu correo verificado
+  await transporter.sendMail({
+    from: '"PWBot" <plataformas.web.cl@gmail.com>', // sender verificado
+    to: email,                                    // cliente
+    cc: "plataformas.web.cl@gmail.com",           // copia interna
     subject: `🟢 Plataformas Web - ${business} (PWBot ${year})`,
     html,
   });
 
-  if (error) {
-    console.error("📧 Error al enviar correo con Resend:", error);
-    throw new Error("RESEND_FAILED");
-  }
+  console.log("📧 [EMAIL] Correo enviado OK");
 }

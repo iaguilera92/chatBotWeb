@@ -1,19 +1,21 @@
 import nodemailer from "nodemailer";
 
+/**
+ * Transporte SMTP Brevo
+ */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false, // TLS
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: "a0fb98001@smtp-brevo.com", // 👈 usuario SMTP Brevo
+    pass: process.env.BREVO_API_KEY!, // 👈 SMTP key
   },
 });
 
 function getTimeUntilMonthlyReset(): string {
   const now = new Date();
 
-  // Próximo día 1 del mes, 00:00
   const nextReset = new Date(
     now.getFullYear(),
     now.getMonth() + 1,
@@ -33,7 +35,6 @@ function getTimeUntilMonthlyReset(): string {
   return `${hours} h ${minutes} min`;
 }
 
-
 export async function notifyAdminBotDown({
   reason,
   disabledAt,
@@ -42,8 +43,9 @@ export async function notifyAdminBotDown({
   reason: string;
   disabledAt: Date;
   retryAfter?: string | null;
-}) {
+}): Promise<void> {
   const year = new Date().getFullYear();
+
   const since = disabledAt.toLocaleString("es-CL", {
     day: "2-digit",
     month: "2-digit",
@@ -52,15 +54,6 @@ export async function notifyAdminBotDown({
     minute: "2-digit",
     hour12: false,
   });
-
-  const retryRow = retryAfter
-    ? `
-<tr>
-  <td style="padding:6px 10px 6px 0;font-weight:bold;">⏳ Vuelve en:</td>
-  <td style="padding:6px 0;">${retryAfter}</td>
-</tr>`
-    : "";
-
 
   const html = `
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f2f2f2;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
@@ -158,12 +151,14 @@ export async function notifyAdminBotDown({
 </table>
 
 `;
-
+  console.log("🚨 [ALERTA] Enviando correo de bot inactivo");
 
   await transporter.sendMail({
-    from: "PWBot Alertas <pwbot.ia@gmail.com>",
+    from: '"PWBot Alertas" <plataformas.web.cl@gmail.com>', // 👈 sender verificado
     to: "plataformas.web.cl@gmail.com",
     subject: "🚨 PWBot desactivado por límite de OpenAI",
     html,
   });
+
+  console.log("🚨 [ALERTA] Correo de bot inactivo enviado OK");
 }

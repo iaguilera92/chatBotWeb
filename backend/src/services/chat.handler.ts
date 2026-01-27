@@ -106,19 +106,15 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                     : "Oferta 2 - Suscripción mensual";
 
             try {
-                console.log("📨 Intentando enviar correo lead:", {
-                    email,
-                    business,
-                    offer,
-                });
-
+                console.log("🚨 Llamando a sendLeadEmail()");
                 await sendLeadEmail({ email, business, offer });
+
+                return "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻";
             } catch (e) {
                 console.error("📧 Error al enviar correo de lead", e);
+
+                return "Listo! ✅\nRecibimos tus datos y te contactaremos pronto por WhatsApp o correo. 👨‍💻";
             }
-
-
-            return "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻";
         }
 
         /* 🚫 Bot deshabilitado manualmente */
