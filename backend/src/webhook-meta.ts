@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { handleChat } from "./services/chat.handler";
+import { handleChat, UiMessage } from "./services/chat.handler";
 import { sendWhatsAppMessage } from "./services/whatsapp.service";
 import {
     saveMessage,
@@ -50,7 +50,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
 
             const convo = getConversation(from);
 
-            // 👤 Modo humano → bot se silencia
+            // 👤 Modo humano → bot silenciado
             if (convo.mode === "human") {
                 return reply.send("EVENT_RECEIVED");
             }
@@ -68,10 +68,17 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 🤖 Bot activo
-            const responseText = await handleChat([
-                { from: "user" as const, text },
-            ]);
+            // 🤖 Construir contexto SOLO para la IA
+            const aiContext = convo.messages
+                .filter(m => m.from === "user" || m.from === "bot")
+                .map(m => ({
+                    from: m.from as "user" | "bot",
+                    text: m.text ?? "",
+                }));
+
+
+
+            const responseText = await handleChat(aiContext);
 
             saveMessage(from, "bot", responseText);
             await sendWhatsAppMessage(from, responseText);
