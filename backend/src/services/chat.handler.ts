@@ -106,10 +106,17 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                     : "Oferta 2 - Suscripción mensual";
 
             try {
+                console.log("📨 Intentando enviar correo lead:", {
+                    email,
+                    business,
+                    offer,
+                });
+
                 await sendLeadEmail({ email, business, offer });
             } catch (e) {
                 console.error("📧 Error al enviar correo de lead", e);
             }
+
 
             return "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻";
         }
