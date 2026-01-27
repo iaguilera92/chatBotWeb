@@ -15,8 +15,8 @@
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "fastify": "^5.7.1",
-    "nodemailer": "^7.0.12",
-    "openai": "^6.16.0"
+    "groq-sdk": "^0.37.0",
+    "nodemailer": "^7.0.12"
   },
   "devDependencies": {
     "@types/node": "^25.0.9",
