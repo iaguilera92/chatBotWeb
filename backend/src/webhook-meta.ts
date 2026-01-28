@@ -57,7 +57,9 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             ================================================= */
             const incomingPhoneNumberId = value?.metadata?.phone_number_id;
 
+            // 🔓 En desarrollo / sandbox NO validamos phone_number_id
             if (
+                process.env.NODE_ENV === "production" &&
                 incomingPhoneNumberId &&
                 incomingPhoneNumberId !== process.env.WHATSAPP_PHONE_NUMBER_ID
             ) {
@@ -67,6 +69,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 );
                 return reply.send("EVENT_RECEIVED");
             }
+
 
             const message = value.messages.find((m: any) => m.type === "text");
             if (!message) {
