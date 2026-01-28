@@ -43,7 +43,6 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
     ===================================================== */
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
         try {
-
             console.log("📩 WEBHOOK FULL:", JSON.stringify(req.body, null, 2));
 
             const value = req.body?.entry?.[0]?.changes?.[0]?.value;
@@ -52,8 +51,24 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 return reply.send("EVENT_RECEIVED");
             }
 
-            const message = value.messages.find((m: any) => m.type === "text");
+            /* =================================================
+               🔐 VALIDAR phone_number_id (CRÍTICO)
+               - Evita responder a payloads mock / sandbox
+            ================================================= */
+            const incomingPhoneNumberId = value?.metadata?.phone_number_id;
 
+            if (
+                incomingPhoneNumberId &&
+                incomingPhoneNumberId !== process.env.WHATSAPP_PHONE_NUMBER_ID
+            ) {
+                console.log(
+                    "⚠️ Webhook ignorado (phone_number_id no coincide):",
+                    incomingPhoneNumberId
+                );
+                return reply.send("EVENT_RECEIVED");
+            }
+
+            const message = value.messages.find((m: any) => m.type === "text");
             if (!message) {
                 return reply.send("EVENT_RECEIVED");
             }
@@ -66,8 +81,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             }
 
             /* =================================================
-               💾 SIEMPRE guardar mensaje del cliente
-               (independiente del modo)
+               💾 Guardar mensaje SIEMPRE
             ================================================= */
             saveMessage(from, "user", text);
 
@@ -75,15 +89,13 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
 
             /* =================================================
                👤 MODO HUMANO
-               - Bot NO responde
-               - Mensajes NO se pierden
             ================================================= */
             if (convo.mode === "human") {
                 return reply.send("EVENT_RECEIVED");
             }
 
             /* =================================================
-               🔀 Escalar a humano (intención detectada)
+               🔀 Escalar a humano
             ================================================= */
             if (shouldEscalateToHuman(text)) {
                 setMode(from, "human");
@@ -101,7 +113,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                🤖 BOT ACTIVO
             ================================================= */
             const responseText = await handleChat(
-                getConversation(from).messages
+                convo.messages
                     .filter(m => m.from !== "human")
                     .map(m => ({
                         from: m.from === "bot" ? "bot" : "user",
@@ -120,4 +132,5 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             return reply.send("EVENT_RECEIVED");
         }
     });
+
 }
