@@ -52,6 +52,119 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
 
         const text = lastUserMessage.text.trim();
 
+        /* 👋 1) SALUDO EXACTO */
+        const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
+
+        if (isGreeting) {
+            return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
+        }
+
+        /* ✅ 2) RESPUESTA AFIRMATIVA → LISTADO DE OFERTAS (HARDCODED) */
+        const isAffirmative = /\b(si|sí|ok|dale|claro)\b/i.test(text);
+
+        if (isAffirmative) {
+            return `*Oferta 1: Pago único*
+💰 Reserva inicial: $29.990 CLP
+💵 Pago final: $70.000 CLP
+🧾 Inversión total: $99.990 CLP
+⏱️ Tiempo de desarrollo: 3 a 7 días
+
+*Oferta 2: Suscripción mensual*
+🚀 Desarrollo inicial: $29.990 CLP
+📆 Suscripción mensual: $9.990 CLP
+⚡ Tiempo de desarrollo: 72 hrs
+
+¿Cuál oferta te interesa más? 😊`;
+
+        }
+
+        /* 🎯 3) SELECCIÓN DE OFERTA → DETALLE (HARDCODED) */
+        const isOffer1 = /\b(oferta|opción|opcion|la)\s*1\b/i.test(text);
+        const isOffer2 = /\b(oferta|opción|opcion|la)\s*2\b/i.test(text);
+
+        if (isOffer1) {
+            return `DETALLE – *Oferta 1: Pago único*
+
+🟢 *Precios (2 cuotas)*
+Reserva inicial: $29.990 CLP
+Pago final al entregar el sitio: $70.000 CLP
+
+⏰ *Plazo de desarrollo*
+Entre 3 y 7 días, según complejidad y contenido.
+
+📦 *Incluye*
+- Desarrollo completo de sitio web profesional.
+- Diseño moderno y 100% responsivo.
+- Hosting seguro incluido.
+- Sitio web administrable con acceso seguro.
+- Entrega final del sitio listo para publicar.
+- Capacitación básica para administrar el sitio.
+
+📑 *Secciones incluidas*
+- Inicio
+- Datos del negocio
+- Servicios / precios
+- Contadores
+- Evidencias / trabajos
+- Ubicación (mapa)
+- Contacto (formulario validado)
+- Integración WhatsApp y correo
+- Nosotros
+- Menú responsivo
+- Footer
+- Panel de administración estándar
+
+🧾 *Inversión total: $99.990 CLP*
+
+📌 *Importante*
+- Cambios posteriores se cotizan según requerimiento.
+
+*¿Confirmas esta opción?* 👨‍💻`;
+        }
+
+        if (isOffer2) {
+            return `DETALLE – *Oferta 2: Suscripción mensual*
+
+🟢 *Precios*
+Desarrollo inicial: $29.990 CLP
+Suscripción mensual: $9.990 CLP
+
+⏰ *Plazo de desarrollo*
+72 horas desde la entrega del contenido.
+
+📦 *Incluye*
+- Desarrollo completo de sitio web profesional.
+- Diseño moderno y 100% responsivo.
+- Hosting seguro incluido.
+- Sitio web administrable con acceso seguro.
+- Soporte técnico 24/7.
+- Cambios y mejoras continuas.
+- Acompañamiento permanente: nos encargamos de tu web.
+
+📑 *Secciones incluidas*
+- Inicio
+- Datos del negocio
+- Servicios / precios
+- Contadores
+- Evidencias / trabajos
+- Ubicación (mapa)
+- Contacto (formulario validado)
+- Integración WhatsApp y correo
+- Nosotros
+- Menú responsivo
+- Footer
+- Panel de administración estándar
+
+*¿Confirmas esta opción?* 👨‍💻`;
+        }
+
+
+        /* 🚫 Validación: si menciona otra oferta */
+        const mentionsOtherOffer = /\b(oferta|opción|opcion)\s*\d+\b/i.test(text) && !isOffer1 && !isOffer2;
+        if (mentionsOtherOffer) {
+            return "⚠️ No contamos con esa oferta. Actualmente solo tenemos la *Oferta 1* y la *Oferta 2*.";
+        }
+
         /* ❤️ Regla personal: Maivelyn */
         if (text.toLowerCase() === "conoces a maivelyn?") {
             return "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.";
@@ -63,21 +176,33 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
         }
 
         /* 🚫 Evitar reenvío si ya se confirmó lead */
-        const alreadySent = messages.some(
+        const lastMessageWasLeadConfirmation =
+            lastUserMessage.text?.includes("@") &&
+            messages.some(
+                m =>
+                    m.from === "bot" &&
+                    typeof m.text === "string" &&
+                    m.text.includes("Te enviamos un correo")
+            );
+
+        if (lastMessageWasLeadConfirmation) {
+            return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
+        }
+
+        const leadAlreadySent = messages.some(
             m =>
                 m.from === "bot" &&
                 typeof m.text === "string" &&
                 m.text.includes("Te enviamos un correo")
         );
 
-        if (alreadySent) {
-            return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
-        }
-
         /* 📧 Detectar correo */
         const emailMatch = text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
 
         if (emailMatch) {
+            if (leadAlreadySent) {
+                return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
+            }
             const email = emailMatch[0];
 
             const businessFromSameMessage = text

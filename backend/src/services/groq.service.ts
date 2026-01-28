@@ -11,22 +11,24 @@ const groq = new Groq({
 
 export async function sendToAI(
     messages: { role: "user" | "assistant"; content: string }[],
-    extraSystemPrompt?: string
+    options?: {
+        needsFullOfferDetail?: boolean;
+    }
 ) {
     const baseSystemPrompt = `
 ${PROMPT_PERFIL_IA}
 ${PROMPT_NEGOCIO}
-${PROMPT_OFERTAS}
 `.trim();
 
-    const systemPrompt = extraSystemPrompt
-        ? `${baseSystemPrompt}\n\n${extraSystemPrompt}`
+    const systemPrompt = options?.needsFullOfferDetail
+        ? `${baseSystemPrompt}\n\n${PROMPT_OFERTAS}`
         : baseSystemPrompt;
 
     const response = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",
-        temperature: 0.4,
-        max_tokens: 400,
+        temperature: 0.3,
+        top_p: 0.9,
+        max_tokens: options?.needsFullOfferDetail ? 450 : 150,
         messages: [
             { role: "system", content: systemPrompt },
             ...messages,
