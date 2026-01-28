@@ -59,8 +59,10 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
 
             const isProduction = process.env.NODE_ENV === "production";
 
+            // 👇 SOLO validar si la variable existe
             if (
                 isProduction &&
+                process.env.WHATSAPP_PHONE_NUMBER_ID &&
                 incomingPhoneNumberId &&
                 incomingPhoneNumberId !== process.env.WHATSAPP_PHONE_NUMBER_ID
             ) {
@@ -70,6 +72,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 );
                 return reply.send("EVENT_RECEIVED");
             }
+
 
 
 
