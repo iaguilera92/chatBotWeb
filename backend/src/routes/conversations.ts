@@ -5,6 +5,7 @@ import {
     setMode,
     canReply,
 } from "../services/conversations.store";
+import { normalizePhone } from "../services/phone.util";
 
 export async function conversationRoutes(app: FastifyInstance) {
 
@@ -24,21 +25,17 @@ export async function conversationRoutes(app: FastifyInstance) {
     });
 
     // 💬 Obtener historial completo de una conversación
-    app.get("/api/conversations/:phone", async (req: any, reply) => {
-        const { phone } = req.params;
-        const convo = getConversation(phone);
+    app.get("/api/conversations/:phone", async (req: any) => {
+        const phoneRaw = req.params.phone;
+        const phone = normalizePhone(phoneRaw); // 🔑 CLAVE
 
-        if (!convo || convo.messages.length === 0) {
-            return reply.code(404).send({ error: "conversation_not_found" });
-        }
-
-        // ❗ NO filtrar mensajes — el panel decide cómo mostrarlos
-        return convo;
+        return getConversation(phone); // 🟢 NUNCA 404
     });
+
 
     // 🔀 Cambiar modo bot ↔ humano
     app.post("/api/conversations/:phone/mode", async (req: any) => {
-        const { phone } = req.params;
+        const phone = normalizePhone(req.params.phone);
         const { mode } = req.body;
 
         if (mode !== "bot" && mode !== "human") {
@@ -48,4 +45,6 @@ export async function conversationRoutes(app: FastifyInstance) {
         setMode(phone, mode);
         return { ok: true, mode };
     });
+
+
 }
