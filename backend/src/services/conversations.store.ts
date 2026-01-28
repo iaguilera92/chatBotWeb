@@ -26,7 +26,7 @@ export function getConversation(phone: string): Conversation {
             messages: [],
             lastMessageAt: new Date(0),
             mode: "bot",
-            needsHuman: false, // 👈 inicial
+            needsHuman: true, // 👈 inicial
         };
         conversations.set(phone, convo);
     }
