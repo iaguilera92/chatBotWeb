@@ -14,6 +14,7 @@ export async function conversationRoutes(app: FastifyInstance) {
             phone: c.phone,
             lastMessageAt: c.lastMessageAt,
             mode: c.mode,
+            needsHuman: c.needsHuman,     // 👈 IMPORTANTE para tu UI
             canReply: canReply(c.phone),
             lastMessage:
                 c.messages.length > 0
@@ -31,6 +32,7 @@ export async function conversationRoutes(app: FastifyInstance) {
             return reply.code(404).send({ error: "conversation_not_found" });
         }
 
+        // ❗ NO filtrar mensajes — el panel decide cómo mostrarlos
         return convo;
     });
 

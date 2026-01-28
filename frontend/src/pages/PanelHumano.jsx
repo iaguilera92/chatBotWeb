@@ -27,8 +27,11 @@ export default function PanelHumano() {
     const theme = useTheme();
 
     const nuevosContactos = conversations.filter(
-        (c) => !c.mode && (!c.messages || c.messages.length <= 1)
+        (c) =>
+            c.messages?.length === 1 &&
+            c.messages[0]?.from === "user"
     ).length;
+
 
     const clientesEnEspera = conversations.filter(
         (c) => c.needsHuman && c.mode !== "human"
@@ -57,6 +60,22 @@ export default function PanelHumano() {
         const t = setInterval(load, 5000);
         return () => clearInterval(t);
     }, []);
+
+    //ESCUCHAR CHAT ACTIVO!
+    useEffect(() => {
+        if (!activePhone) return;
+
+        const refreshChat = async () => {
+            const data = await getConversation(activePhone);
+            setChat(data);
+        };
+
+        refreshChat(); // inmediato
+
+        const t = setInterval(refreshChat, 3000); // polling ligero
+        return () => clearInterval(t);
+    }, [activePhone]);
+
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
