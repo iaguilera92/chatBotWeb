@@ -55,21 +55,36 @@ export default function IniciarConversacion({ onClose }) {
     return (
         <Box>
             {/* HEADER TIPO WHATSAPP */}
+            {/* HEADER TIPO WHATSAPP */}
             <Box
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 1,
-                    mb: 1.5,
+                    gap: 1.2,
+                    mb: 2,
                 }}
             >
-                <WhatsAppIcon sx={{ color: "#25D366", fontSize: 26 }} />
+                <Box
+                    sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: "50%",
+                        backgroundColor: "#25D366",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                    }}
+                >
+                    <WhatsAppIcon />
+                </Box>
+
                 <Box>
-                    <Typography fontWeight={700} fontSize={16}>
-                        Nuevo Chat
+                    <Typography fontWeight={700} fontSize={15}>
+                        Nuevo chat
                     </Typography>
                     <Typography fontSize={12} color="text.secondary">
-                        Enviar mensaje manual
+                        Mensaje manual por WhatsApp
                     </Typography>
                 </Box>
             </Box>
@@ -82,31 +97,50 @@ export default function IniciarConversacion({ onClose }) {
                 onChange={(e) => setPhone(normalizePhone(e.target.value))}
                 fullWidth
                 size="small"
-                placeholder="569XXXXXXXX"
-                inputProps={{ inputMode: "numeric" }}
+                placeholder="9 1234 5678"
                 error={phone.length > 0 && !isPhoneValid}
                 helperText={
                     !isPhoneValid && phone.length > 0
-                        ? "Formato esperado: 569XXXXXXXX"
+                        ? "Formato: +56 9 XXXX XXXX"
                         : " "
                 }
+                InputProps={{
+                    startAdornment: (
+                        <Box sx={{ mr: 1, color: "text.secondary", fontWeight: 500 }}>
+                            +56
+                        </Box>
+                    ),
+                }}
                 sx={{
-                    mb: 1,
+                    mb: 1.5,
                     "& .MuiOutlinedInput-root": {
-                        borderRadius: 999,
+                        borderRadius: 3,
                     },
                 }}
             />
 
-            {/* BURBUJA MENSAJE */}
+
             <Box
                 sx={{
-                    backgroundColor: "#dcf8c6", // burbuja WhatsApp
-                    borderRadius: "12px 12px 0 12px",
+                    position: "relative",
+                    backgroundColor: "#f0f2f5",   // gris idle (WhatsApp Web)
+                    borderRadius: 3,
                     px: 2,
                     py: 1.5,
                     mb: 2,
-                    boxShadow: "0 2px 6px rgba(0,0,0,.08)",
+
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+
+                    transition:
+                        "background-color .18s ease, box-shadow .18s ease, border-color .18s ease",
+
+                    /* ✍️ al escribir */
+                    "&:focus-within": {
+                        backgroundColor: "#ffffff",          // 👈 cambia a blanco
+                        borderColor: "#25D366",
+                        boxShadow: "0 0 0 2px rgba(37,211,102,.22)",
+                    },
                 }}
             >
                 <TextField
@@ -120,9 +154,16 @@ export default function IniciarConversacion({ onClose }) {
                     variant="standard"
                     InputProps={{
                         disableUnderline: true,
+                        sx: {
+                            fontSize: 14,
+                            lineHeight: 1.4,
+                        },
                     }}
                 />
             </Box>
+
+
+
 
             {/* ACCIONES */}
             <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -143,19 +184,34 @@ export default function IniciarConversacion({ onClose }) {
                         boxShadow: "0 6px 16px rgba(37,211,102,.35)",
                         textTransform: "none",
 
+                        /* 🔁 transición base */
+                        transition:
+                            "transform .18s ease, box-shadow .18s ease, background-color .18s ease",
+
+                        /* estado normal */
+                        transform: sending ? "scale(1.06)" : "scale(1)",
+
+                        /* boost al enviar */
+                        boxShadow: sending
+                            ? "0 10px 28px rgba(37,211,102,.55)"
+                            : "0 6px 16px rgba(37,211,102,.35)",
+
                         "&:hover": {
                             backgroundColor: "#1ebe5d",
+                            transform: sending ? "scale(1.06)" : "scale(1.04)",
                         },
 
                         "&.Mui-disabled": {
                             backgroundColor: "#e5e7eb",
                             color: "#9ca3af",
                             boxShadow: "none",
+                            transform: "scale(1)",
                         },
                     }}
                 >
                     {sending ? "Enviando…" : "Enviar"}
                 </Button>
+
             </Stack>
 
             {/* FEEDBACK */}

@@ -20,7 +20,7 @@ export default function Chat() {
 
     const tenant = useTenant();
     const [welcomeOpen, setWelcomeOpen] = useState(true);
-
+    const [starting, setStarting] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [lead, setLead] = useState({
         offer: null,
@@ -122,9 +122,9 @@ export default function Chat() {
     };
 
     const handleStartChat = () => {
+        if (starting) return;
+        setStarting(true);
         setWelcomeOpen(false);
-
-        // Simula saludo automático
         handleSend("Hola 👋");
     };
 
@@ -132,6 +132,9 @@ export default function Chat() {
     const handleExitChat = () => {
         setWelcomeOpen(false);
     };
+
+
+
     return (
         <Box
             sx={{
@@ -280,8 +283,19 @@ export default function Chat() {
                 open={welcomeOpen}
                 maxWidth="xs"
                 fullWidth
+                onClose={(e, reason) => {
+                    if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+                    setWelcomeOpen(false);
+                }}
+                disableEscapeKeyDown
                 PaperProps={{
+
                     sx: {
+                        animation: "dialogEnter .35s ease-out",
+                        "@keyframes dialogEnter": {
+                            "0%": { opacity: 0, transform: "scale(0.92) translateY(10px)" },
+                            "100%": { opacity: 1, transform: "scale(1) translateY(0)" },
+                        },
                         background: "linear-gradient(180deg, #111827, #0b1220)",
                         borderRadius: 4,
                         color: "#e5e7eb",
@@ -294,7 +308,7 @@ export default function Chat() {
                 <Box
                     sx={{
                         pt: 4,
-                        pb: 2,
+                        pb: 0,
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -375,31 +389,38 @@ export default function Chat() {
                     >
                         PWBot
                     </Typography>
-
-                    <Typography
-                        sx={{
-                            fontSize: 13,
-                            color: "#9ca3af",
-                            whiteSpace: "nowrap",     // 👈 fuerza 1 línea
-                        }}
-                    >
-                        Tu asistente inteligente listo para tu negocio 🚀
-                    </Typography>
                 </Box>
 
                 {/* CONTENIDO */}
-                <DialogContent sx={{ textAlign: "center", px: 3, pt: 1 }}>
+                <DialogContent
+                    sx={{
+                        textAlign: "center",
+                        px: 3,
+                        pt: 1,
+                        pb: 3,
+                    }}
+                >
                     <Typography
                         sx={{
                             fontSize: 14,
-                            color: "#d1d5db",
+                            fontWeight: 500,
+                            color: "#e5e7eb",
                             lineHeight: 1.4,
+
+                            /* ✨ Efecto respiración suave */
+                            animation: "softPulse 2.2s ease-in-out infinite",
+
+                            "@keyframes softPulse": {
+                                "0%": { opacity: 0.85 },
+                                "50%": { opacity: 1 },
+                                "100%": { opacity: 0.85 },
+                            },
                         }}
                     >
-                        Presiona saludar para comenzar.
+                        Conversemos cuando quieras!
                     </Typography>
-
                 </DialogContent>
+
 
                 {/* ACCIONES */}
                 <DialogActions
@@ -416,7 +437,7 @@ export default function Chat() {
                         sx={{
                             px: 1,
                             py: 1.2,              // 👈 más alto
-                            fontSize: 14,
+                            fontSize: 15,
                             textTransform: "none",
                             color: "#9ca3af",
                             "&:hover": {
@@ -428,16 +449,18 @@ export default function Chat() {
                     </Button>
 
                     <Button
+                        disabled={starting}
                         variant="contained"
                         onClick={handleStartChat}
                         sx={{
+                            opacity: starting ? 0.7 : 1,
                             px: 6,
                             py: 1.2,
                             position: "relative",
                             overflow: "hidden",
                             textTransform: "none",
                             fontWeight: 600,
-                            fontSize: 14,
+                            fontSize: 15,
                             color: "#ffffff",
 
                             /* 🔵 Fondo azul premium */
