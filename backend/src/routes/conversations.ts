@@ -3,20 +3,21 @@ import {
     listConversations,
     getConversation,
     setMode,
-    canReply,
 } from "../services/conversations.store";
 import { normalizePhone } from "../services/phone.util";
+import { Conversation } from "../services/conversations.store";
 
 export async function conversationRoutes(app: FastifyInstance) {
 
-    // 📋 Listar conversaciones (ordenadas por actividad)
+    // 📋 Listar conversaciones
     app.get("/api/conversations", async () => {
-        return listConversations().map(c => ({
+        const conversations = await listConversations();
+
+        return conversations.map((c: Conversation) => ({
             phone: c.phone,
             lastMessageAt: c.lastMessageAt,
             mode: c.mode,
-            needsHuman: c.needsHuman,     // 👈 IMPORTANTE para tu UI
-            canReply: canReply(c.phone),
+            needsHuman: c.needsHuman,
             lastMessage:
                 c.messages.length > 0
                     ? c.messages[c.messages.length - 1]
@@ -24,14 +25,13 @@ export async function conversationRoutes(app: FastifyInstance) {
         }));
     });
 
-    // 💬 Obtener historial completo de una conversación
+    // 💬 Obtener historial completo
     app.get("/api/conversations/:phone", async (req: any) => {
         const phoneRaw = req.params.phone;
-        const phone = normalizePhone(phoneRaw); // 🔑 CLAVE
+        const phone = normalizePhone(phoneRaw);
 
-        return getConversation(phone); // 🟢 NUNCA 404
+        return await getConversation(phone);
     });
-
 
     // 🔀 Cambiar modo bot ↔ humano
     app.post("/api/conversations/:phone/mode", async (req: any) => {
@@ -42,9 +42,7 @@ export async function conversationRoutes(app: FastifyInstance) {
             return { error: "invalid_mode" };
         }
 
-        setMode(phone, mode);
+        await setMode(phone, mode);
         return { ok: true, mode };
     });
-
-
 }
