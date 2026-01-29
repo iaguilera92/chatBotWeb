@@ -1,90 +1,78 @@
+import { redis } from "../lib/redis";
+
 export type ConversationMode = "bot" | "human";
 
 export type ChatMessage = {
     from: "user" | "bot" | "human";
     text: string;
-    timestamp: Date;
+    ts: number;
 };
 
 export type Conversation = {
     phone: string;
     messages: ChatMessage[];
-    lastMessageAt: Date;
+    lastMessageAt: number;
     mode: ConversationMode;
-    needsHuman: boolean; // 👈 NUEVO
+    needsHuman: boolean;
 };
 
-const conversations = new Map<string, Conversation>();
+const key = (phone: string) => `convo:${phone}`;
 
-/** Obtiene o crea una conversación */
-export function getConversation(phone: string): Conversation {
-    let convo = conversations.get(phone);
+export async function getConversation(phone: string): Promise<Conversation> {
+    const raw = await redis.get(key(phone));
 
-    if (!convo) {
-        convo = {
-            phone,
-            messages: [],
-            lastMessageAt: new Date(0),
-            mode: "bot",
-            needsHuman: true, // 👈 inicial
-        };
-        conversations.set(phone, convo);
-    }
+    if (raw) return JSON.parse(raw);
 
+    const convo: Conversation = {
+        phone,
+        messages: [],
+        lastMessageAt: 0,
+        mode: "bot",
+        needsHuman: false,
+    };
+
+    await redis.set(key(phone), JSON.stringify(convo));
     return convo;
 }
 
-/** Guarda un mensaje en el historial */
-export function saveMessage(
+export async function saveMessage(
     phone: string,
     from: ChatMessage["from"],
     text: string
 ) {
-    const convo = getConversation(phone);
+    const convo = await getConversation(phone);
 
     convo.messages.push({
         from,
         text,
-        timestamp: new Date(),
+        ts: Date.now(),
     });
 
-    convo.lastMessageAt = new Date();
+    convo.lastMessageAt = Date.now();
 
-    // 👤 Si el cliente escribe y NO está en modo humano → marcar espera
     if (from === "user" && convo.mode !== "human") {
         convo.needsHuman = true;
     }
+
+    await redis.set(key(phone), JSON.stringify(convo));
 }
 
-/** Cambia el modo de la conversación */
-export function setMode(phone: string, mode: ConversationMode) {
-    const convo = getConversation(phone);
+export async function setMode(phone: string, mode: ConversationMode) {
+    const convo = await getConversation(phone);
 
     convo.mode = mode;
+    if (mode === "human") convo.needsHuman = false;
 
-    // ✅ Al tomar control humano, ya no está en espera
-    if (mode === "human") {
-        convo.needsHuman = false;
-    }
+    await redis.set(key(phone), JSON.stringify(convo));
 }
 
-/** Lista conversaciones (ordenadas por último mensaje) */
-export function listConversations(): Conversation[] {
-    return Array.from(conversations.values()).sort(
-        (a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime()
-    );
-}
+export async function listConversations(): Promise<Conversation[]> {
+    const keys = await redis.keys("convo:*");
+    if (!keys.length) return [];
 
-/** Verifica si está dentro de la ventana de 24h (WhatsApp) */
-export function canReply(phone: string): boolean {
-    const convo = conversations.get(phone);
-    if (!convo) return false;
-
-    const diffMs = Date.now() - convo.lastMessageAt.getTime();
-    return diffMs <= 24 * 60 * 60 * 1000;
-}
-
-/** Limpieza opcional (tests/dev) */
-export function clearConversations() {
-    conversations.clear();
+    const values = await redis.mget(keys);
+    return values
+        .filter(Boolean)
+        .map(v => JSON.parse(v!))
+        .sort((a, b) => b.lastMessageAt - a.lastMessageAt);
 }

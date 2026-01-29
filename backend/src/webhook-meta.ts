@@ -91,9 +91,9 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             /* =================================================
                💾 Guardar mensaje SIEMPRE
             ================================================= */
-            saveMessage(from, "user", text);
+            await saveMessage(from, "user", text);
+            const convo = await getConversation(from);
 
-            const convo = getConversation(from);
 
             /* =================================================
                👤 MODO HUMANO
@@ -106,12 +106,13 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                🔀 Escalar a humano
             ================================================= */
             if (shouldEscalateToHuman(text)) {
-                setMode(from, "human");
+                await setMode(from, "human");
 
                 const notice =
                     "👤 Te comunico con un ejecutivo, un momento por favor.";
 
-                saveMessage(from, "bot", notice);
+                await saveMessage(from, "bot", notice);
+
                 await sendWhatsAppMessage(from, notice);
 
                 return reply.send("EVENT_RECEIVED");
@@ -130,7 +131,8 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             );
 
             if (responseText && responseText.trim()) {
-                saveMessage(from, "bot", responseText);
+                await saveMessage(from, "bot", responseText);
+
                 await sendWhatsAppMessage(from, responseText);
             }
 
