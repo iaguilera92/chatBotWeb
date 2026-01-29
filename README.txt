@@ -61,5 +61,5 @@ tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, r
 En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,pages, services). 
 Uso Brevo para mis correos automatizados.
 Mi hosting es Render ya tengo publicado API y FRONT. Estoy usando WhatsApp Cloud API (Meta) para mi N° fono.
-Uso Redis en mi Render para guardar las conversaciones (ESTO PENDIENTE TODAVÍA), tengo un panel humano, historial de conversaciones e iniciar conversacion.
-Habla resumido y con energia.
+Uso Redis en mi Render para guardar las conversaciones, tengo un panel humano, historial de conversaciones e iniciar conversacion.
+Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para token permanente.

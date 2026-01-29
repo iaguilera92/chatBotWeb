@@ -20,8 +20,10 @@ export default function ChatContainer({ messages, isTyping }) {
                 flex: 1,
                 minHeight: 0,          // ⭐ CLAVE
                 overflowY: "auto",
-                px: { xs: 1, md: 2 },
-                py: { xs: 0.5, md: 2 },
+                px: { xs: 1.3, md: 1.5 },   // 👈 MÁS AIRE LATERAL
+                pt: { xs: 2.5, md: 2.5 },
+                pb: { xs: 0.5, md: 2 },
+
                 WebkitOverflowScrolling: "touch",
                 backgroundColor: "#efeae2",
                 backgroundImage:
