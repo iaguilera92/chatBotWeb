@@ -119,9 +119,11 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             }
 
             /* =================================================
-               🤖 BOT ACTIVO
-            ================================================= */
-            const responseText = await handleChat(
+    🤖 BOT ACTIVO (con mensaje automático si demora)
+ ================================================= */
+
+            // 1️⃣ Llamamos al bot SIN await
+            const replyPromise = handleChat(
                 convo.messages
                     .filter(m => m.from !== "human")
                     .map(m => ({
@@ -130,11 +132,36 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                     }))
             );
 
+            // 2️⃣ Programamos mensaje automático a los 3 segundos
+            let autoMessageSent = false;
+
+            const shouldSendAutoMessage =
+                text.length > 5 && !/^(hola|buenas|hey)$/i.test(text);
+
+            const autoReplyTimer = shouldSendAutoMessage
+                ? setTimeout(() => {
+                    sendWhatsAppMessage(
+                        from,
+                        "✍️ Estoy revisando tu mensaje, en un momento te respondo 😊"
+                    ).catch(console.error);
+                }, 3000)
+                : null;
+
+
+
+            // 3️⃣ Esperamos la respuesta real del bot
+            const responseText = await replyPromise;
+
+            // 4️⃣ Si respondió antes de 3s, cancelamos el automático
+            if (autoReplyTimer) clearTimeout(autoReplyTimer);
+
+
+            // 5️⃣ Enviamos la respuesta real
             if (responseText && responseText.trim()) {
                 await saveMessage(from, "bot", responseText);
-
                 await sendWhatsAppMessage(from, responseText);
             }
+
 
             return reply.send("EVENT_RECEIVED");
         } catch (err) {
