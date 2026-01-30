@@ -3,7 +3,7 @@ import { IconButton, Box, Paper, Typography, List, ListItemButton, TextField, Bu
 import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api";
 import { sendHumanMessage } from "../services/operator.api";
 import TuneIcon from "@mui/icons-material/Tune";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PersonIcon from "@mui/icons-material/Person";
@@ -25,6 +25,9 @@ export default function PanelHumano() {
     const isHumanMode = chat?.mode === "human";
     const [openNuevaConv, setOpenNuevaConv] = useState(false);
     const theme = useTheme();
+    const [showHint, setShowHint] = useState(true);
+    const [compactNewChat, setCompactNewChat] = useState(false);
+    const [expandedNewChat, setExpandedNewChat] = useState(false);
 
     const nuevosContactos = conversations.filter(
         (c) =>
@@ -59,6 +62,11 @@ export default function PanelHumano() {
         load();
         const t = setInterval(load, 5000);
         return () => clearInterval(t);
+    }, []);
+
+    useEffect(() => {
+        const t = setTimeout(() => setCompactNewChat(true), 5000);
+        return () => clearTimeout(t);
     }, []);
 
     //ESCUCHAR CHAT ACTIVO!
@@ -115,12 +123,34 @@ export default function PanelHumano() {
         setChat(data);
     }
 
+    useEffect(() => {
+        if (!chat) {
+            const timer = setTimeout(() => {
+                setShowHint(false);
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [chat]);
+
+    useEffect(() => {
+        // abrir al inicio
+        const openTimer = setTimeout(() => setExpandedNewChat(true), 150);
+
+        // cerrar luego de 5s
+        const closeTimer = setTimeout(() => setExpandedNewChat(false), 5000);
+
+        return () => {
+            clearTimeout(openTimer);
+            clearTimeout(closeTimer);
+        };
+    }, []);
 
     function Step({ value, label, color, bg, highlight }) {
         return (
             <Box
                 sx={{
-                    flex: 1,
+                    flex: 1,                         // 👈 se mantiene
                     height: 56,
                     px: 1,
                     borderRadius: 3,
@@ -130,6 +160,11 @@ export default function PanelHumano() {
                     alignItems: "center",
                     justifyContent: "center",
                     position: "relative",
+
+                    /* 👇 SOLO AJUSTE REAL */
+                    maxWidth: { md: 140 },           // desktop más compacto
+                    mx: "auto",                      // 👈 centrado perfecto
+
                     boxShadow: highlight
                         ? "0 0 0 2px rgba(220,38,38,.25), 0 8px 20px rgba(0,0,0,.12)"
                         : "0 6px 16px rgba(0,0,0,.08)",
@@ -166,6 +201,7 @@ export default function PanelHumano() {
             </Box>
         );
     }
+
 
     function Arrow({ active }) {
         return (
@@ -385,44 +421,92 @@ export default function PanelHumano() {
                         </Box>
 
                         {/* DERECHA */}
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                                textTransform: "none",
-                                fontWeight: 700,
-                                fontSize: 13,
-                                borderRadius: 999,
-                                px: 2.2,
-                                whiteSpace: "nowrap",
-
-                                color: "#312e81",
-                                borderColor: "#c7d2fe",
-                                background: "linear-gradient(135deg,#eef2ff,#f8fafc)",
-                                boxShadow: "0 2px 6px rgba(0,0,0,.08)",
-
-                                "&:hover": {
-                                    background: "linear-gradient(135deg,#e0e7ff,#eef2ff)",
-                                    borderColor: "#818cf8",
-                                    boxShadow: "0 0 0 3px rgba(99,102,241,.25)",
-                                },
+                        <motion.div
+                            animate={{
+                                width: expandedNewChat ? 170 : 40,
                             }}
-                            onClick={() => setOpenNuevaConv(true)}
-                            startIcon={
+                            transition={{
+                                duration: 0.45,
+                                ease: "easeInOut",
+                            }}
+                            style={{ display: "inline-flex" }}
+                        >
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setOpenNuevaConv(true)}
+                                sx={{
+                                    textTransform: "none",
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    borderRadius: 999,
+
+                                    width: "100%",
+                                    minWidth: 40,
+                                    px: expandedNewChat ? 2.2 : 0,
+
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+
+                                    overflow: "hidden",
+                                    whiteSpace: "nowrap",
+
+                                    color: "#312e81",
+                                    borderColor: "#c7d2fe",
+                                    background: "linear-gradient(135deg,#eef2ff,#f8fafc)",
+                                    boxShadow: "0 2px 6px rgba(0,0,0,.08)",
+
+                                    transition: "padding .45s ease",
+
+                                    "&:hover": {
+                                        background: "linear-gradient(135deg,#e0e7ff,#eef2ff)",
+                                        borderColor: "#818cf8",
+                                        boxShadow: "0 0 0 3px rgba(99,102,241,.25)",
+                                    },
+                                }}
+                            >
                                 <Box
                                     sx={{
-                                        fontSize: 18,
-                                        fontWeight: 900,
-                                        lineHeight: 1,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: expandedNewChat ? 0.6 : 0,
+                                        transition: "gap .35s ease",
                                     }}
                                 >
-                                    +
-                                </Box>
-                            }
-                        >
+                                    {/* + */}
+                                    <motion.span
+                                        animate={{
+                                            scale: expandedNewChat ? 1 : 1.15,
+                                        }}
+                                        transition={{ duration: 0.3 }}
+                                        style={{
+                                            fontSize: 18,
+                                            fontWeight: 900,
+                                            lineHeight: 1,
+                                        }}
+                                    >
+                                        +
+                                    </motion.span>
 
-                            Iniciar conversación
-                        </Button>
+                                    {/* Texto */}
+                                    <AnimatePresence>
+                                        {expandedNewChat && (
+                                            <motion.span
+                                                initial={{ opacity: 0, x: -8 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                transition={{ duration: 0.25 }}
+                                                style={{ display: "inline-block" }}
+                                            >
+                                                Iniciar conversación
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </Box>
+                            </Button>
+                        </motion.div>
 
 
                     </Box>
@@ -1112,48 +1196,78 @@ export default function PanelHumano() {
                     <IniciarConversacion onClose={() => setOpenNuevaConv(false)} />
                 </Dialog>
 
+                <AnimatePresence>
 
-                {!chat && (
-                    <Box
-                        component={motion.div}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        sx={{
-                            position: "absolute",
-                            bottom: 24,
-                            left: 0,
-                            right: 0,                // 👈 CLAVE
-                            display: "flex",
-                            justifyContent: "center",
-                            zIndex: 5,
-                            pointerEvents: "none",
-                        }}
-                    >
+                    {!chat && showHint && (
                         <Box
+                            component={motion.div}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
                             sx={{
-                                px: 3.5,
-                                py: 1.6,
-                                borderRadius: 3,
-                                background: "linear-gradient(135deg, #1f2937, #111827)",
-                                boxShadow: "0 20px 40px rgba(0,0,0,.35)",
-                                border: "1px solid #374151",
+                                position: "absolute",
+                                bottom: 24,
+                                left: 0,
+                                right: 0,
+                                display: "flex",
+                                justifyContent: "center",
+                                zIndex: 5,
+                                pointerEvents: "none",
                             }}
                         >
-                            <Typography
+                            <Box
                                 sx={{
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    color: "#e5e7eb",
-                                    whiteSpace: "nowrap",
-                                    letterSpacing: 0.3,
+                                    position: "relative",
+                                    px: 3.5,
+                                    py: 1.6,
+                                    borderRadius: 3,
+                                    background: "linear-gradient(135deg, #1e3a8a, #1f2937)",
+                                    boxShadow: "0 20px 40px rgba(0,0,0,.35)",
+                                    overflow: "hidden",
+
+                                    /* 🟦 borde base */
+                                    border: "1px solid rgba(59,130,246,.35)",
+
+                                    /* 🟦 borde progreso */
+                                    "&::after": {
+                                        content: '""',
+                                        position: "absolute",
+                                        inset: 0,
+                                        borderRadius: "inherit",
+                                        border: "2px solid #60a5fa",
+                                        clipPath: "inset(0 100% 0 0)",
+                                        animation: "borderProgress 5s linear forwards",
+                                        pointerEvents: "none",
+                                    },
+
+                                    "@keyframes borderProgress": {
+                                        "0%": {
+                                            clipPath: "inset(0 100% 0 0)",
+                                        },
+                                        "100%": {
+                                            clipPath: "inset(0 0 0 0)",
+                                        },
+                                    },
                                 }}
                             >
-                                Selecciona una conversación para comenzar
-                            </Typography>
+
+                                <Typography
+                                    sx={{
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        color: "#e5e7eb",
+                                        whiteSpace: "nowrap",
+                                        letterSpacing: 0.3,
+                                    }}
+                                >
+                                    Selecciona una conversación para comenzar
+                                </Typography>
+                            </Box>
                         </Box>
-                    </Box>
-                )}
+                    )}
+                </AnimatePresence>
+
             </Box>
         </Box>
     );

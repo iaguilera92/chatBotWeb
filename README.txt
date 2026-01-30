@@ -48,7 +48,7 @@ INSTRUCCIONES CLIENTE:
     - Tu número de WhatsApp Business se usará en Cloud API (Configuración para producción)
 
 - Costos mensuales:
-    - OpenAI USD 10 · WhatsApp Cloud API USD 10
+    - Groq USD 10 · WhatsApp Cloud API USD 10
 
 - PWBot IA + Panel Humano:
   - $29.990 CLP (mensual)
@@ -56,7 +56,7 @@ INSTRUCCIONES CLIENTE:
 N° BOT: 56946873014
 
 ESTRUCTURA:
-Estoy desarrollando un chatbot con OpenAI usando REACT Node.js, tengo dos capas (backend/frontend),
+Estoy desarrollando un chatbot con Groq usando REACT Node.js, tengo dos capas (backend/frontend),
 tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, routes y services, en la raiz el .env, uso Fastify.
 En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,pages, services). 
 Uso Brevo para mis correos automatizados.

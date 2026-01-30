@@ -1,121 +1,46 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
 
-/**
- * Transporte SMTP Brevo
- */
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: "a0fb98001@smtp-brevo.com", // 👈 usuario SMTP de Brevo
-    pass: process.env.BREVO_API_KEY!, // 👈 SMTP key (pwbot-final)
-  },
-});
-
-/**
- * Tipado estricto del lead
- */
 export type LeadEmailParams = {
   email: string;
   business: string;
   offer: string;
 };
 
-/**
- * Envío de correo de lead
- */
 export async function sendLeadEmail({
   email,
   business,
   offer,
 }: LeadEmailParams): Promise<void> {
+
   const year = new Date().getFullYear();
 
-  console.log("📧 [EMAIL] Enviando correo a:", email);
-
   const html = `
-<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #212121;">
-  <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 16px; overflow: hidden;">
+    <h3>🤖 Nueva solicitud desde PWBot ${year}</h3>
+    <p><strong>Negocio:</strong> ${business}</p>
+    <p><strong>Correo:</strong> ${email}</p>
+    <p><strong>Oferta:</strong> ${offer}</p>
+  `;
 
-    <!-- HEADER -->
-    <div style="text-align: center; background-color: #0a0f2c; padding: 10px 0;">
-      <a href="https://plataformas-web.cl" style="text-decoration: none;">
-        <img
-          src="https://plataformas-web.cl/logo-plataformas-web-correo.webp"
-          alt="Plataformas Web"
-          height="40"
-          style="margin-top: 10px;"
-        />
-      </a>
-      <h4 style="color: #ffffff; margin: 15px 0 5px; font-weight: 600;">
-        🤖 Nueva solicitud desde PWBot
-      </h4>
-    </div>
+  await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      sender: {
+        name: "PWBot",
+        email: "no-reply@plataformas-web.cl", // verificado en Brevo
+      },
+      to: [{ email }],
+      cc: [{ email: "plataformas.web.cl@gmail.com" }],
+      subject: `🟢 Plataformas Web - ${business}`,
+      htmlContent: html,
+    },
+    {
+      headers: {
+        "api-key": process.env.BREVO_API_KEY!,
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+    }
+  );
 
-    <!-- BODY -->
-    <div style="padding: 20px 24px; background-color: #ffffff;">
-
-      <p style="color: #0a0f2c; font-size: 13px; font-weight: 600; margin: 0 0 16px;">
-        ¡Nuevo cliente interesado!
-      </p>
-
-      <p style="background-color: #e8f5e9; color: #1b5e20; padding: 10px; border-radius: 8px; border: 1px solid #a5d6a7; font-size: 12px; margin: 0 0 20px;">
-        ✅ Un cliente completó el proceso de interés a través del asistente <strong>PWBot ${year}</strong>.
-      </p>
-
-      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-        <tr>
-          <td style="padding: 6px 10px 6px 0; font-weight: bold;">🏷️ Negocio:</td>
-          <td style="padding: 6px 0;">${business}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 10px 6px 0; font-weight: bold;">📧 Correo:</td>
-          <td style="padding: 6px 0;">
-            <a href="mailto:${email}" style="color: #0d47a1; text-decoration: none;">
-              ${email}
-            </a>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 10px 6px 0; font-weight: bold;">📦 Oferta elegida:</td>
-          <td style="padding: 6px 0;">${offer}</td>
-        </tr>
-      </table>
-
-      <p style="margin: 25px 0 0; font-size: 12px; color: #444; text-align: center;">
-        💡 Te contactaremos pronto por WhatsApp o correo para avanzar con tu sitio web.
-      </p>
-    </div>
-
-    <!-- FOOTER -->
-    <div style="text-align: center; background-color: #0a0f2c; color: #ffffff; padding: 16px;">
-      <p style="margin: 4px 0; font-size: 13px;">
-        📞 <a href="tel:+56946873014" style="color: #ffc002; text-decoration: none;">
-          +56 9 4687 3014
-        </a>
-      </p>
-      <p style="margin: 4px 0; font-size: 13px;">
-        📧 <a href="mailto:plataformas.web.cl@gmail.com" style="color: #ffc002; text-decoration: none;">
-          plataformas.web.cl@gmail.com
-        </a>
-      </p>
-      <p style="margin-top: 12px; font-size: 11px; color: #aaa;">
-        Correo generado automáticamente por PWBot ${year}
-      </p>
-    </div>
-
-  </div>
-</div>
-`;
-
-  await transporter.sendMail({
-    from: '"PWBot" <plataformas.web.cl@gmail.com>', // sender verificado
-    to: email,                                    // cliente
-    cc: "plataformas.web.cl@gmail.com",           // copia interna
-    subject: `🟢 Plataformas Web - ${business} (PWBot ${year})`,
-    html,
-  });
-
-  console.log("📧 [EMAIL] Correo enviado OK");
+  console.log("📧 [EMAIL] Enviado vía Brevo API REST");
 }

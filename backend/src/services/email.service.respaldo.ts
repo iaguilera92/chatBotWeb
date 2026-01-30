@@ -23,7 +23,7 @@ export async function sendLeadEmail({
 
     const html = `
 <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #212121;">
-  <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 16px; overflow: hidden;">
+  <div style="max-width: 600px; margin: auto; border: 1px solid #b3b1b1; border-radius: 16px; overflow: hidden;">
 
     <div style="text-align: center; background-color: #0a0f2c; padding: 10px 0;">
       <a href="https://plataformas-web.cl" style="text-decoration: none;">
