@@ -158,6 +158,15 @@ Suscripción mensual: $9.990 CLP
 *¿Confirmas esta opción?* 👨‍💻`;
         }
 
+        /* ✅ CONFIRMACIÓN DE OFERTA → PEDIR DATOS (EXACTO) */
+        const isConfirmation =
+            /\b(confirmo|confirmar|sí confirmo|si confirmo|ok confirmo|dale confirmo)\b/i.test(text);
+
+        if (isConfirmation) {
+            return `Perfecto 😊 para continuar, por favor indícame:
+1) Tu correo electrónico
+2) Nombre del negocio o emprendimiento`;
+        }
 
         /* 🚫 Validación: si menciona otra oferta */
         const mentionsOtherOffer = /\b(oferta|opción|opcion)\s*\d+\b/i.test(text) && !isOffer1 && !isOffer2;
