@@ -12,23 +12,18 @@ export type UiMessage = {
     timestamp?: string | Date;
 };
 
-type AiMessage = {
-    role: "user" | "assistant";
+export type AiRole = "system" | "user" | "assistant";
+
+export type AiMessage = {
+    role: AiRole;
     content: string;
 };
 
-// Utils
-function getPreviousUserText(
-    messages: UiMessage[],
-    beforeIndex: number
-): string | null {
-    for (let i = beforeIndex - 1; i >= 0; i--) {
-        const m = messages[i];
-        if (m.from === "user" && typeof m.text === "string") {
-            return m.text.trim();
-        }
-    }
-    return null;
+function isFlowBreaking(text: string) {
+    return !(
+        /^(si|sí|no|ok|dale|1|2|confirmo|confirmar)$/i.test(text) ||
+        /^[^\s@]+@[^\s@]+\.[^\s@]+/.test(text)
+    );
 }
 
 // HANDLER PRINCIPAL
@@ -48,7 +43,11 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             return "💡 ¿En qué podemos ayudarte?";
         }
 
-        const text = lastUserMessage.text.trim();
+        const rawText = lastUserMessage.text;
+        const text = rawText
+            .replace(/\u00A0/g, " ") // NBSP → espacio normal
+            .trim()
+            .toLowerCase();
 
         // 🔴 ÚLTIMO CHAT BOT
         const lastBotMessage =
@@ -57,17 +56,25 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                 .find(m => m.from === "bot" && typeof m.text === "string")
                 ?.text ?? "";
 
+        const PHRASES = {
+            OFFER_INTRO: "¿Te gustaría ver las ofertas",
+            OFFER_SELECTION: "¿Cuál oferta te interesa",
+            CONFIRMATION: "¿Confirmas esta opción",
+            LEAD_REQUEST: "Tu correo electrónico",
+            LEAD_SENT: "Te enviamos un correo",
+        };
+
         // FASE
         const phase =
-            lastBotMessage.includes("¿Te gustaría ver las ofertas")
+            lastBotMessage.includes(PHRASES.OFFER_INTRO)
                 ? "waiting_offer_intro"
-                : lastBotMessage.includes("¿Cuál oferta te interesa")
+                : lastBotMessage.includes(PHRASES.OFFER_SELECTION)
                     ? "waiting_offer_selection"
-                    : lastBotMessage.includes("¿Confirmas esta opción")
+                    : lastBotMessage.includes(PHRASES.CONFIRMATION)
                         ? "waiting_confirmation"
-                        : lastBotMessage.includes("Tu correo electrónico")
+                        : lastBotMessage.includes(PHRASES.LEAD_REQUEST)
                             ? "waiting_lead"
-                            : lastBotMessage.includes("Te enviamos un correo")
+                            : lastBotMessage.includes(PHRASES.LEAD_SENT)
                                 ? "lead_sent"
                                 : "idle";
 
@@ -92,12 +99,19 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
 Si tienes cualquier problema, avísame.`;
         }
 
-
+        /* ⏸️ USUARIO PIDE ESPERA */
+        if (
+            /\b(wait|espera|espérame|esperame|un segundo|un momento|dame un segundo)\b/i.test(text) ||
+            /^[\p{Emoji}\s]+$/u.test(text)
+        ) {
+            return "Perfecto 👍, lo esperamos ⏸️";
+        }
 
         /* 👋 1) SALUDO EXACTO */
         const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
 
         if (isGreeting && phase === "idle") {
+            botStatus.phase = "waiting_offer_intro"; // 👈 CLAVE
             return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
         }
 
@@ -116,7 +130,8 @@ Si tienes cualquier problema, avísame.`;
 
 
         if (isAffirmative && phase === "waiting_offer_intro") {
-
+            botStatus.leadErrors = 0;
+            botStatus.phase = "waiting_offer_selection";
             return `*Oferta 1: Pago único*
 💰 Reserva inicial: $29.990 CLP
 💵 Pago final: $70.000 CLP
@@ -132,28 +147,55 @@ Si tienes cualquier problema, avísame.`;
         }
 
         /* 🎯 3) SELECCIÓN DE OFERTA → DETALLE (HARDCODED) */
+        const normalized = text.replace(/\s+/g, " ");
         const isOffer1 =
             phase === "waiting_offer_selection" &&
-            /^(1|la\s*1|oferta\s*1|opción\s*1|opcion\s*1)$/i.test(text);
+            ["1", "la 1", "oferta 1", "opcion 1", "opción 1"].includes(normalized);
 
         const isOffer2 =
             phase === "waiting_offer_selection" &&
-            /^(2|la\s*2|oferta\s*2|opción\s*2|opcion\s*2)$/i.test(text);
+            ["2", "la 2", "oferta 2", "opcion 2", "opción 2"].includes(normalized);
 
+        if (
+            phase === "waiting_offer_selection" &&
+            /\b(ok|ya|mmm|mm|vale|entiendo)\b/i.test(text)
+        ) {
+            return "😊 Perfecto.\nIndícame qué opción prefieres escribiendo *1* o *2*.";
+        }
 
+        /* 🚫 MENCIÓN INCOMPLETA DE OFERTA */
+        if (
+            phase === "waiting_offer_selection" &&
+            /\boferta\b/i.test(text) &&
+            !/\d/.test(text)
+        ) {
+            return "🙂 Tenemos dos opciones disponibles.\nIndícame *1* o *2* para continuar.";
+        }
 
+        /* 🚫 OFERTA CON NÚMERO INVÁLIDO */
+        if (
+            phase === "waiting_offer_selection" &&
+            /\b(oferta|opción|opcion)\s*\d+\b/i.test(text) &&
+            !isOffer1 &&
+            !isOffer2
+        ) {
+            return "⚠️ Actualmente solo contamos con *Oferta 1* y *Oferta 2*.\nIndícame cuál te interesa 😊";
+        }
+
+        /* 🚫 NÚMERO SUELTO */
         if (
             phase === "waiting_offer_selection" &&
             /^\D*\d+\D*$/.test(text) &&
             !isOffer1 &&
             !isOffer2
         ) {
-            return "👉 Indícame la opción escribiendo *1* o *2*, por favor 😊";
+            return "🤔 Elige una opción válida escribiendo *1* o *2*, por favor 😊";
         }
 
 
 
         if (isOffer1 && phase === "waiting_offer_selection") {
+            botStatus.phase = "waiting_confirmation";
             botStatus.leadOffer = "Oferta 1 - Pago único";
 
             return `DETALLE – *Oferta 1: Pago único*
@@ -196,6 +238,7 @@ Entre 3 y 7 días, según complejidad y contenido.
         }
 
         if (isOffer2 && phase === "waiting_offer_selection") {
+            botStatus.phase = "waiting_confirmation";
             botStatus.leadOffer = "Oferta 2 - Suscripción mensual";
 
             return `DETALLE – *Oferta 2: Suscripción mensual*
@@ -233,26 +276,52 @@ Suscripción mensual: $9.990 CLP
 *¿Confirmas esta opción?* 👨‍💻`;
         }
 
-        /* ✅ CONFIRMACIÓN */
-        if (phase === "waiting_confirmation" &&
+        /* 🚫 CONFIRMACIÓN SIN OFERTA */
+        if (
+            phase === "waiting_offer_selection" &&
             /\b(confirmo|confirmar|sí|si|ok|dale)\b/i.test(text)
         ) {
+            return "🙂 Primero necesito saber qué oferta te interesa.\nIndícame *1* o *2*, por favor.";
+        }
 
+        /* ✅ CONFIRMACIÓN */
+        if (
+            phase === "waiting_confirmation" &&
+            botStatus.leadOffer &&
+            /\b(confirmo|confirmar|sí|si|ok|dale)\b/i.test(text)
+        ) {
+            botStatus.phase = "waiting_lead";
             return `Perfecto 😊 para continuar, por favor indícame:
 1) Tu correo electrónico
 2) Nombre del negocio o emprendimiento`;
-        }
-
-        /* 🚫 Validación: si menciona otra oferta */
-        const mentionsOtherOffer = /\b(oferta|opción|opcion)\s*\d+\b/i.test(text) && !isOffer1 && !isOffer2;
-        if (mentionsOtherOffer) {
-            return "⚠️ No contamos con esa oferta. Actualmente solo tenemos la *Oferta 1* y la *Oferta 2*.";
         }
 
         /* ❤️ Regla personal: Maivelyn */
         if (text.toLowerCase() === "conoces a maivelyn?") {
             return "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.";
         }
+
+        /* 🚫 Regla anti-insultos */
+        const insults = [
+            "pete", "petardo",
+            "idiota", "imbécil", "imbecil", "imbesil",
+            "tonto", "tonta", "tontos", "tontas",
+            "weon", "weona", "weón", "weona", "hueon", "hueona", "hueón", "hueona",
+            "tarado", "tarada",
+            "estúpido", "estupido", "estúpida", "estupida",
+            "payaso", "payasa",
+            "pelotudo", "pelotuda",
+            "gil", "gilazo",
+            "pajero", "pajera",
+            "imbecil", "leso", "lesa",
+            "wn", "wna"
+        ];
+        const insultMatch = text.match(new RegExp(`\\b(${insults.join("|")})\\b`, "i"));
+
+        if (insultMatch) {
+            return `😐 ¿Cómo que "${insultMatch[0]}"?`;
+        }
+
 
         /* 🐶 Regla personal: James */
         if (text.toLowerCase() === "conoces a james?") {
@@ -273,6 +342,13 @@ Suscripción mensual: $9.990 CLP
             return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
         }
 
+        /* 🙏 Disculpa del usuario */
+        if (/lo siento|perd[oó]n|disculpa/i.test(text)) {
+            botStatus.leadErrors = 0;
+            botStatus.phase = "waiting_offer_intro";
+            return "😊 No hay problema.\n¿Te gustaría ver las ofertas de hoy?";
+        }
+
         /* 📧 Detectar correo */
         /* 📧 ESPERA EMAIL + NEGOCIO */
         if (phase === "waiting_lead") {
@@ -287,6 +363,17 @@ Suscripción mensual: $9.990 CLP
             const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
 
             if (!match) {
+                botStatus.leadErrors = (botStatus.leadErrors ?? 0) + 1;
+
+                if (botStatus.leadErrors >= 2) {
+                    botStatus.leadErrors = 0; // reset
+                    botStatus.phase = "waiting_offer_intro";
+
+                    return `😅 Veo que está siendo complicado.
+
+¿Quieres que volvamos a ver las ofertas o prefieres intentarlo más tarde?`;
+                }
+
                 return `⚠️ Formato incorrecto.
 Por favor envíame:
 1) Tu correo electrónico
@@ -295,6 +382,7 @@ Por favor envíame:
 Ejemplo:
 correo@dominio.cl Mi Negocio`;
             }
+
 
             const email = match[1];
             const business = match[2];
@@ -318,6 +406,7 @@ correo@dominio.cl Mi Negocio`;
                 botStatus.leadEmail = email;
                 botStatus.leadRegisteredAt = new Date();
                 botStatus.phase = "lead_sent"; // 👈 opcional 2 (ya lo hiciste)
+                botStatus.leadErrors = 0;
 
                 return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
 
@@ -344,16 +433,48 @@ correo@dominio.cl Mi Negocio`;
             return "🤖 (modo demo) Gracias por tu mensaje.";
         }
 
-        return await sendToAI([
+        const flowBroken =
+            isFlowBreaking(text) &&
+            !["waiting_offer_selection", "waiting_confirmation", "waiting_lead"].includes(phase);
+
+        /* ❌ RECHAZO DE OFERTA EN CONFIRMACIÓN */
+        if (
+            phase === "waiting_confirmation" &&
+            /\b(no|no gracias|mejor no|prefiero otra|no me convence)\b/i.test(text)
+        ) {
+            botStatus.leadOffer = null;
+            botStatus.phase = "waiting_offer_selection";
+
+            return "👌 Sin problema. ¿Prefieres la *Oferta 1* o la *Oferta 2*?";
+        }
+
+        /* 🤔 APROBACIÓN BLANDA SIN CONFIRMAR */
+        if (
+            phase === "waiting_confirmation" &&
+            botStatus.leadOffer &&
+            /\b(me gusta|me agrada|me sirve|está bien|esta bien|me tinca|interesante|suena bien)\b/i.test(text)
+        ) {
+            return "😊 ¡Genial! Para continuar, solo necesito que me confirmes escribiendo *sí* o *confirmo*.";
+        }
+
+        /* 🧱 CONTENCIÓN FINAL DE SELECCIÓN DE OFERTA */
+        if (
+            phase === "waiting_offer_selection" &&
+            !isOffer1 &&
+            !isOffer2 &&
+            !/\b(oferta|opción|opcion)\b/i.test(text)
+        ) {
+            return "🙂 Para continuar, dime qué opción prefieres:\n*1* Pago único\n*2* Suscripción mensual";
+        }
+
+
+        return await sendToAI(
+            [{ role: "user", content: text }],
             {
-                role: "assistant",
-                content: "Eres un asistente comercial. No repitas ofertas si ya fueron mostradas."
-            },
-            {
-                role: "user",
-                content: text
+                intent: flowBroken ? "out_of_flow" : "in_flow"
             }
-        ]);
+        );
+
 
     } catch (err: any) {
         console.error("🤖 Error en handleChat:", err);
