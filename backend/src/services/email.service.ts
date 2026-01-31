@@ -4,7 +4,9 @@ export type LeadEmailParams = {
   email: string;
   business: string;
   offer: string;
+  registeredAt?: Date | null;
 };
+
 
 export async function sendLeadEmail({
   email,
@@ -13,6 +15,14 @@ export async function sendLeadEmail({
 }: LeadEmailParams): Promise<void> {
 
   const year = new Date().getFullYear();
+  const fechaRegistro = new Date().toLocaleString("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   console.log("📧 [EMAIL] Enviando correo a:", email);
   const html = `
@@ -61,6 +71,10 @@ export async function sendLeadEmail({
         <tr>
           <td style="padding: 6px 10px 6px 0; font-weight: bold;">📦 Oferta elegida:</td>
           <td style="padding: 6px 0;">${offer}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 10px 6px 0; font-weight: bold;">📅 Fecha de registro:</td>
+          <td style="padding: 6px 0;">${fechaRegistro}</td>
         </tr>
       </table>
 

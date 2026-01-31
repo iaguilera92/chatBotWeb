@@ -3,7 +3,6 @@ import { sendLeadEmail } from "./email.service";
 import { botStatus } from "../state/botStatus";
 
 // Tipos reutilizados
-
 export type UiMessage = {
     from: "user" | "bot";
     text?: string | null;
@@ -19,7 +18,6 @@ type AiMessage = {
 };
 
 // Utils
-
 function getPreviousUserText(
     messages: UiMessage[],
     beforeIndex: number
@@ -34,10 +32,10 @@ function getPreviousUserText(
 }
 
 // HANDLER PRINCIPAL
-
 export async function handleChat(messages: UiMessage[]): Promise<string> {
     try {
         /* 🟢 Validación base */
+
         if (!messages || messages.length === 0) {
             return "💡 ¿En qué podemos ayudarte?";
         }
@@ -52,17 +50,73 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
 
         const text = lastUserMessage.text.trim();
 
+        // 🔴 ÚLTIMO CHAT BOT
+        const lastBotMessage =
+            [...messages]
+                .reverse()
+                .find(m => m.from === "bot" && typeof m.text === "string")
+                ?.text ?? "";
+
+        // FASE
+        const phase =
+            lastBotMessage.includes("¿Te gustaría ver las ofertas")
+                ? "waiting_offer_intro"
+                : lastBotMessage.includes("¿Cuál oferta te interesa")
+                    ? "waiting_offer_selection"
+                    : lastBotMessage.includes("¿Confirmas esta opción")
+                        ? "waiting_confirmation"
+                        : lastBotMessage.includes("Tu correo electrónico")
+                            ? "waiting_lead"
+                            : lastBotMessage.includes("Te enviamos un correo")
+                                ? "lead_sent"
+                                : "idle";
+
+
+        /* 🔁 REENVÍO DE CORREO (PRIORIDAD MÁXIMA) */
+        const wantsResend =
+            /reenvi|enviame de nuevo|envíame de nuevo|no me llegó|mandalo otra vez/i.test(text);
+
+        if (wantsResend) {
+            if (!botStatus.leadEmailSent || !botStatus.leadEmail) {
+                return "⚠️ Aún no tenemos un correo registrado para reenviar.";
+            }
+
+            await sendLeadEmail({
+                email: botStatus.leadEmail,
+                business: "Registrado previamente",
+                offer: botStatus.leadOffer ?? "Oferta registrada",
+                registeredAt: botStatus.leadRegisteredAt ?? undefined,
+            });
+
+            return `Perfecto 👍 reenviaré el correo con la información de tu negocio.
+Si tienes cualquier problema, avísame.`;
+        }
+
+
+
         /* 👋 1) SALUDO EXACTO */
         const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
 
-        if (isGreeting) {
+        if (isGreeting && phase === "idle") {
             return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
         }
 
-        /* ✅ 2) RESPUESTA AFIRMATIVA → LISTADO DE OFERTAS (HARDCODED) */
-        const isAffirmative = /\b(si|sí|ok|dale|claro)\b/i.test(text);
+        if (isGreeting && phase !== "idle") {
+            return "😊 Sigamos donde quedamos.";
+        }
 
-        if (isAffirmative) {
+        if (phase === "lead_sent") {
+            return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
+        }
+
+        /* ✅ 2) RESPUESTA AFIRMATIVA → LISTADO DE OFERTAS (HARDCODED) */
+        const isAffirmative =
+            /\b(si|sí|ok|dale|claro|bueno|ya|perfecto)\b/i.test(text);
+
+
+
+        if (isAffirmative && phase === "waiting_offer_intro") {
+
             return `*Oferta 1: Pago único*
 💰 Reserva inicial: $29.990 CLP
 💵 Pago final: $70.000 CLP
@@ -75,14 +129,33 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
 ⚡ Tiempo de desarrollo: 72 hrs
 
 ¿Cuál oferta te interesa más? 😊`;
-
         }
 
         /* 🎯 3) SELECCIÓN DE OFERTA → DETALLE (HARDCODED) */
-        const isOffer1 = /\b(oferta|opción|opcion|la)\s*1\b/i.test(text);
-        const isOffer2 = /\b(oferta|opción|opcion|la)\s*2\b/i.test(text);
+        const isOffer1 =
+            phase === "waiting_offer_selection" &&
+            /^(1|la\s*1|oferta\s*1|opción\s*1|opcion\s*1)$/i.test(text);
 
-        if (isOffer1) {
+        const isOffer2 =
+            phase === "waiting_offer_selection" &&
+            /^(2|la\s*2|oferta\s*2|opción\s*2|opcion\s*2)$/i.test(text);
+
+
+
+        if (
+            phase === "waiting_offer_selection" &&
+            /^\D*\d+\D*$/.test(text) &&
+            !isOffer1 &&
+            !isOffer2
+        ) {
+            return "👉 Indícame la opción escribiendo *1* o *2*, por favor 😊";
+        }
+
+
+
+        if (isOffer1 && phase === "waiting_offer_selection") {
+            botStatus.leadOffer = "Oferta 1 - Pago único";
+
             return `DETALLE – *Oferta 1: Pago único*
 
 🟢 *Precios (2 cuotas)*
@@ -122,7 +195,9 @@ Entre 3 y 7 días, según complejidad y contenido.
 *¿Confirmas esta opción?* 👨‍💻`;
         }
 
-        if (isOffer2) {
+        if (isOffer2 && phase === "waiting_offer_selection") {
+            botStatus.leadOffer = "Oferta 2 - Suscripción mensual";
+
             return `DETALLE – *Oferta 2: Suscripción mensual*
 
 🟢 *Precios*
@@ -158,11 +233,11 @@ Suscripción mensual: $9.990 CLP
 *¿Confirmas esta opción?* 👨‍💻`;
         }
 
-        /* ✅ CONFIRMACIÓN DE OFERTA → PEDIR DATOS (EXACTO) */
-        const isConfirmation =
-            /\b(confirmo|confirmar|sí confirmo|si confirmo|ok confirmo|dale confirmo)\b/i.test(text);
+        /* ✅ CONFIRMACIÓN */
+        if (phase === "waiting_confirmation" &&
+            /\b(confirmo|confirmar|sí|si|ok|dale)\b/i.test(text)
+        ) {
 
-        if (isConfirmation) {
             return `Perfecto 😊 para continuar, por favor indícame:
 1) Tu correo electrónico
 2) Nombre del negocio o emprendimiento`;
@@ -198,56 +273,57 @@ Suscripción mensual: $9.990 CLP
             return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
         }
 
-        const leadAlreadySent = messages.some(
-            m =>
-                m.from === "bot" &&
-                typeof m.text === "string" &&
-                m.text.includes("Te enviamos un correo")
-        );
-
         /* 📧 Detectar correo */
-        const emailMatch = text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
+        /* 📧 ESPERA EMAIL + NEGOCIO */
+        if (phase === "waiting_lead") {
 
-        if (emailMatch) {
-            if (leadAlreadySent) {
-                return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
+            // ✅ OPCIONAL 1: solo email (sin negocio)
+            const onlyEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+            if (onlyEmail) {
+                return `Perfecto 👍 ahora indícame el *nombre del negocio o emprendimiento*`;
             }
-            const email = emailMatch[0];
 
-            const businessFromSameMessage = text
-                .replace(email, "")
-                .replace(/\b(confirmo|ok|sí|si|dale)\b/gi, "")
-                .replace(/\s{2,}/g, " ")
-                .trim();
+            // 🧾 Email + negocio en un solo mensaje
+            const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
 
-            const emailIndex = [...messages]
-                .map(m => m.text)
-                .lastIndexOf(lastUserMessage.text);
+            if (!match) {
+                return `⚠️ Formato incorrecto.
+Por favor envíame:
+1) Tu correo electrónico
+2) Nombre del negocio
 
-            const business =
-                businessFromSameMessage ||
-                getPreviousUserText(messages, emailIndex) ||
-                "No informado";
+Ejemplo:
+correo@dominio.cl Mi Negocio`;
+            }
 
-            const offer =
-                messages.find(
-                    m =>
-                        m.from === "bot" &&
-                        typeof m.text === "string" &&
-                        m.text.includes("Oferta 1")
-                )
-                    ? "Oferta 1 - Pago único"
-                    : "Oferta 2 - Suscripción mensual";
+            const email = match[1];
+            const business = match[2];
+
+            const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+            if (!isValidEmail) {
+                return `⚠️ El correo ingresado no es válido.
+Ejemplo:
+correo@dominio.cl Mi Negocio`;
+            }
 
             try {
-                console.log("🚨 Llamando a sendLeadEmail()");
-                await sendLeadEmail({ email, business, offer });
+                await sendLeadEmail({
+                    email,
+                    business,
+                    offer: botStatus.leadOffer ?? "Oferta no especificada",
+                });
 
-                return "Listo! ✅\nTe enviamos un correo y te contactaremos para iniciar el desarrollo. 👨‍💻";
+                botStatus.leadEmailSent = true;
+                botStatus.leadEmail = email;
+                botStatus.leadRegisteredAt = new Date();
+                botStatus.phase = "lead_sent"; // 👈 opcional 2 (ya lo hiciste)
+
+                return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
+
             } catch (e) {
-                console.error("📧 Error al enviar correo de lead", e);
-
-                return "Listo! ✅\nRecibimos tus datos y te contactaremos pronto por WhatsApp o correo. 👨‍💻";
+                console.error("📧 Error al enviar correo", e);
+                return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
             }
         }
 
@@ -256,39 +332,28 @@ Suscripción mensual: $9.990 CLP
             return "⏳ Nuestro asistente está temporalmente fuera de línea. Un humano te atenderá en breve.";
         }
 
-        /* 🧠 Contexto mínimo para IA */
-        const lastBotMessage = [...messages]
-            .reverse()
-            .find(
-                m =>
-                    m.from === "bot" &&
-                    typeof m.text === "string" &&
-                    m.text.trim()
-            );
-
-        const aiMessages: AiMessage[] = [
-            ...(lastBotMessage
-                ? [
-                    {
-                        role: "assistant" as const,
-                        content: lastBotMessage.text!.trim(),
-                    },
-                ]
-                : []),
-            {
-                role: "user" as const,
-                content: text,
-            },
-        ];
-
-        /* 🧪 Modo demo */
-        if (process.env.MOCK_AI === "true") {
-            return "🤖 (modo demo) Gracias por tu mensaje. Un asesor te responderá en breve.";
+        /* 🚨 BLOQUE ANTI-NÚMEROS SUELTOS (AQUÍ) */
+        if (
+            /^\d+$/.test(text) &&
+            phase !== "waiting_offer_selection"
+        ) {
+            return "🤔 ¿Podrías indicarme un poco más de detalle?";
         }
 
-        /* 🤖 Llamada a Groq */
-        const aiReply = await sendToAI(aiMessages);
-        return aiReply;
+        if (process.env.MOCK_AI === "true") {
+            return "🤖 (modo demo) Gracias por tu mensaje.";
+        }
+
+        return await sendToAI([
+            {
+                role: "assistant",
+                content: "Eres un asistente comercial. No repitas ofertas si ya fueron mostradas."
+            },
+            {
+                role: "user",
+                content: text
+            }
+        ]);
 
     } catch (err: any) {
         console.error("🤖 Error en handleChat:", err);
