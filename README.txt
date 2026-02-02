@@ -62,4 +62,4 @@ En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,
 Uso Brevo para mis correos automatizados.
 Mi hosting es Render ya tengo publicado API y FRONT. Estoy usando WhatsApp Cloud API (Meta) para mi N° fono.
 Uso Redis en mi Render para guardar las conversaciones, tengo un panel humano, historial de conversaciones e iniciar conversacion.
-Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para token permanente.
+Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para que me habiliten el telefono (esta en pendiente).

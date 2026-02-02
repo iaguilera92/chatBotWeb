@@ -2,7 +2,7 @@ import { CssBaseline } from "@mui/material";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./components/common/Header";
 import Chat from "./pages/Chat";
-import PanelHumano from "./pages/PanelHumano";
+import PanelHumano from "./pages/PanelHumano2";
 import { TenantProvider } from "./context/TenantContext";
 import demoEmpresa from "./config/demoEmpresa";
 import { Box } from "@mui/material";
