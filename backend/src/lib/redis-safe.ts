@@ -27,10 +27,18 @@ function getRedis(): Redis | null {
     return redis;
 }
 
-// Wrapper seguro que no falla si redis es null
+// Wrapper seguro que funciona también en localhost
 export const redisSafe = {
-    get: async (key: string) => getRedis()?.get(key) ?? null,
-    set: async (key: string, value: string) => getRedis()?.set(key, value),
-    keys: async (pattern: string) => getRedis()?.keys(pattern) ?? [],
-    mget: async (keys: string[]) => getRedis()?.mget(keys) ?? [],
+    async get(key: string) {
+        return await getRedis()?.get(key) ?? null;
+    },
+    async set(key: string, value: string) {
+        await getRedis()?.set(key, value);
+    },
+    async keys(pattern: string) {
+        return await getRedis()?.keys(pattern) ?? [];
+    },
+    async mget(keys: string[]) {
+        return await getRedis()?.mget(keys) ?? [];
+    },
 };

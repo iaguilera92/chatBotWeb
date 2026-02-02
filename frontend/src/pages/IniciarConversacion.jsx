@@ -1,18 +1,9 @@
-import {
-    Box,
-    Typography,
-    TextField,
-    Button,
-    Stack,
-    Snackbar,
-    Alert,
-    Divider,
-} from "@mui/material";
+import { Box, Typography, TextField, Button, Stack, Snackbar, Alert, Divider, } from "@mui/material";
 import { useState } from "react";
 import { sendHumanMessage } from "../services/operator.api";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 
-const DEFAULT_PHONE = "56992914526";
+const DEFAULT_PHONE = "992914526";
 
 export default function IniciarConversacion({ onClose }) {
     const [phone, setPhone] = useState(DEFAULT_PHONE);
@@ -24,16 +15,23 @@ export default function IniciarConversacion({ onClose }) {
         message: "",
     });
 
-    const normalizePhone = (value) => value.replace(/\D/g, "");
-    const isPhoneValid = phone.length >= 11;
+    const normalizePhone = (value) => value.replace(/\D/g, "").slice(0, 9);
+    const isPhoneValid = phone.length === 9;
     const canSend = isPhoneValid && message.trim().length > 0 && !sending;
 
     const handleSend = async () => {
-        if (!canSend) return;
+        console.log("handleSend clicked", { phone, message, canSend });
+        if (!canSend) {
+            console.log("No se puede enviar, canSend=false");
+            return;
+        }
         setSending(true);
 
         try {
-            await sendHumanMessage(phone, message.trim());
+            console.log("Enviando mensaje a:", `56${phone}`);
+            const res = await sendHumanMessage(`56${phone}`, message.trim());
+            console.log("Respuesta API:", res);
+
             setMessage("");
             setAlert({
                 open: true,
@@ -41,7 +39,8 @@ export default function IniciarConversacion({ onClose }) {
                 message: "Mensaje enviado por WhatsApp",
             });
             setTimeout(() => onClose?.(), 600);
-        } catch {
+        } catch (err) {
+            console.error("Error enviando mensaje:", err);
             setAlert({
                 open: true,
                 type: "error",
@@ -52,9 +51,9 @@ export default function IniciarConversacion({ onClose }) {
         }
     };
 
+
     return (
         <Box>
-            {/* HEADER TIPO WHATSAPP */}
             {/* HEADER TIPO WHATSAPP */}
             <Box
                 sx={{
@@ -100,8 +99,8 @@ export default function IniciarConversacion({ onClose }) {
                 placeholder="9 1234 5678"
                 error={phone.length > 0 && !isPhoneValid}
                 helperText={
-                    !isPhoneValid && phone.length > 0
-                        ? "Formato: +56 9 XXXX XXXX"
+                    phone.length > 0 && !isPhoneValid
+                        ? "Debe ser un número móvil chileno (9 dígitos)"
                         : " "
                 }
                 InputProps={{
@@ -110,12 +109,6 @@ export default function IniciarConversacion({ onClose }) {
                             +56
                         </Box>
                     ),
-                }}
-                sx={{
-                    mb: 1.5,
-                    "& .MuiOutlinedInput-root": {
-                        borderRadius: 3,
-                    },
                 }}
             />
 
@@ -181,7 +174,6 @@ export default function IniciarConversacion({ onClose }) {
                         fontWeight: 700,
                         color: "#fff",
                         backgroundColor: "#25D366",
-                        boxShadow: "0 6px 16px rgba(37,211,102,.35)",
                         textTransform: "none",
 
                         /* 🔁 transición base */

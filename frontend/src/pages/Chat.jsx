@@ -15,8 +15,10 @@ import ChatInput from "../components/chat/ChatInput";
 import { useEffect, useState } from "react";
 
 export default function Chat() {
-    const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+    console.log("🔥 API_URL usada:", API_URL);
+
 
     const tenant = useTenant();
     const [welcomeOpen, setWelcomeOpen] = useState(true);
