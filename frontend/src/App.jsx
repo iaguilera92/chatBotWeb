@@ -1,12 +1,16 @@
-import { CssBaseline } from "@mui/material";
+import { CssBaseline, Box, useMediaQuery } from "@mui/material";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./components/common/Header";
 import Chat from "./pages/Chat";
-import PanelHumano from "./pages/PanelHumano2";
+import PanelHumano from "./pages/PanelHumano";
+import PanelHumano2 from "./pages/PanelHumano2";
 import { TenantProvider } from "./context/TenantContext";
 import demoEmpresa from "./config/demoEmpresa";
-import { Box } from "@mui/material";
 
+function PanelHumanoResponsive() {
+  const isMobile = useMediaQuery("(max-width:768px)");
+  return isMobile ? <PanelHumano /> : <PanelHumano2 />;
+}
 
 function App() {
   return (
@@ -19,24 +23,25 @@ function App() {
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden", // 🚫 scroll global
+            overflow: "hidden",
           }}
         >
-          {/* HEADER = ~10% */}
           <Header />
 
-          {/* CONTENIDO = ~90% */}
           <Box
             sx={{
-              flex: 1,       // ocupa TODO lo que queda
-              minHeight: 0,  // clave para scroll interno
+              flex: 1,
+              minHeight: 0,
               display: "flex",
               overflow: "hidden",
             }}
           >
             <Routes>
               <Route path="/" element={<Chat />} />
-              <Route path="/panel-humano" element={<PanelHumano />} />
+              <Route
+                path="/panel-humano"
+                element={<PanelHumanoResponsive />}
+              />
             </Routes>
           </Box>
         </Box>
@@ -44,6 +49,5 @@ function App() {
     </TenantProvider>
   );
 }
-
 
 export default App;

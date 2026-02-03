@@ -3,6 +3,7 @@ import {
   Typography,
   List,
   ListItemButton,
+  Chip,
 } from "@mui/material";
 
 const conversationsMock = [
@@ -20,9 +21,9 @@ const conversationsMock = [
   },
 ];
 
-export default function PanelHumanoConversaciones() {
+export default function PanelHumanoConversaciones({ onSelect }) {
   return (
-    <List sx={{ p: 1, overflowY: "auto", flex: 1 }}>
+    <List sx={{ p: 0, overflowY: "auto", flex: 1 }}>
       {conversationsMock.map((c) => {
         const isHuman = c.mode === "human";
         const needsAttention = c.needsHuman && !isHuman;
@@ -34,22 +35,32 @@ export default function PanelHumanoConversaciones() {
         return (
           <ListItemButton
             key={c.phone}
+            onClick={() => onSelect(c.phone)} // ✅ FIX
             sx={{
-              mb: 0.6,
-              borderRadius: 2,
-              alignItems: "flex-start",
+              mb: 0.8,
+              px: 1.5,
+              py: 1,
+              borderRadius: 3,
+              alignItems: "center",
               position: "relative",
+              bgcolor: needsAttention
+                ? "rgba(220,38,38,0.08)"
+                : "rgba(255,255,255,0.08)",
 
-              backgroundColor: needsAttention ? "#fef2f2" : "transparent",
+              "&:hover": {
+                bgcolor: needsAttention
+                  ? "rgba(220,38,38,0.15)"
+                  : "rgba(255,255,255,0.15)",
+              },
 
               "&::before": {
                 content: '""',
                 position: "absolute",
                 left: 0,
-                top: 8,
-                bottom: 8,
-                width: 3,
-                borderRadius: 2,
+                top: 10,
+                bottom: 10,
+                width: 4,
+                borderRadius: 4,
                 backgroundColor: needsAttention
                   ? "#dc2626"
                   : isHuman
@@ -58,32 +69,58 @@ export default function PanelHumanoConversaciones() {
               },
             }}
           >
-            <Box sx={{ mr: 1.5 }}>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  bgcolor: "#e0e7ff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                }}
-              >
-                {c.phone.slice(-2)}
-              </Box>
+            {/* AVATAR */}
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                bgcolor: "#e0e7ff",
+                color: "#1e3a8a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: 13,
+                mr: 1.5,
+              }}
+            >
+              {c.phone.slice(-2)}
             </Box>
 
-            <Box sx={{ flex: 1 }}>
-              <Typography fontWeight={500}>
+            {/* INFO */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography fontWeight={600} fontSize={13} noWrap>
                 {c.phone}
               </Typography>
 
-              <Typography fontSize={11} color="text.secondary">
-                {isHuman ? "CONTROL HUMANO" : "AUTOMATIZADO"} · hace {minutesAgo} min
+              <Typography fontSize={11} color="rgba(255,255,255,0.7)">
+                hace {minutesAgo} min
               </Typography>
             </Box>
+
+            {/* ESTADO */}
+            <Chip
+              size="small"
+              label={
+                needsAttention
+                  ? "ATENCIÓN"
+                  : isHuman
+                    ? "HUMANO"
+                    : "BOT"
+              }
+              sx={{
+                height: 20,
+                fontSize: 10,
+                fontWeight: 600,
+                bgcolor: needsAttention
+                  ? "#dc2626"
+                  : isHuman
+                    ? "#10b981"
+                    : "#3b82f6",
+                color: "#fff",
+              }}
+            />
           </ListItemButton>
         );
       })}
