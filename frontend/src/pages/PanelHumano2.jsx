@@ -1,14 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { IconButton, Box, Paper, Typography, List, ListItemButton, TextField, Button, Stack, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, } from "@mui/material";
+import { Box, Paper, Typography, List, useMediaQuery, } from "@mui/material";
 import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api";
 import { sendHumanMessage } from "../services/operator.api";
-import TuneIcon from "@mui/icons-material/Tune";
-import { motion, AnimatePresence } from "framer-motion";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import PersonIcon from "@mui/icons-material/Person";
-import InputBase from "@mui/material/InputBase";
-import SendIcon from "@mui/icons-material/Send";
 import IniciarConversacion from "./IniciarConversacion";
 import DialogTomarControl from "./DialogTomarControl";
 import PanelHumanoConversaciones from "./PanelHumanoConversaciones";
@@ -20,42 +13,9 @@ export default function PanelHumano2() {
   const [activePhone, setActivePhone] = useState(null);
   const [chat, setChat] = useState(null);
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const isHumanMode = chat?.mode === "human";
-  const [openNuevaConv, setOpenNuevaConv] = useState(false);
-  const [showHint, setShowHint] = useState(true);
-  const [compactNewChat, setCompactNewChat] = useState(false);
-  const [expandedNewChat, setExpandedNewChat] = useState(false);
-
-  const nuevosContactos = conversations.filter(
-    (c) =>
-      c.messages?.length === 1 &&
-      c.messages[0]?.from === "user"
-  ).length;
-
-
-  const clientesEnEspera = conversations.filter(
-    (c) => c.needsHuman && c.mode !== "human"
-  ).length;
-
-  const conversacionesAtendidas = conversations.filter(
-    (c) => c.mode === "human"
-  ).length;
-  const [shakeEnEspera, setShakeEnEspera] = useState(false);
-  const conversationsSorted = [...conversations].sort((a, b) => {
-    // Prioridad: needsHuman primero
-    if (a.needsHuman && !b.needsHuman) return -1;
-    if (!a.needsHuman && b.needsHuman) return 1;
-
-    // Luego por fecha (más reciente arriba)
-    const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-    const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-    return db - da;
-  });
-
-  const shakeTimerRef = useRef(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const load = () => getConversations().then(setConversations);
@@ -64,10 +24,24 @@ export default function PanelHumano2() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const t = setTimeout(() => setCompactNewChat(true), 5000);
-    return () => clearTimeout(t);
-  }, []);
+  async function send() {
+    if (!message.trim() || !activePhone) return;
+
+    try {
+      setSending(true);
+      await sendHumanMessage(activePhone, message);
+      setMessage("");
+
+      const data = await getConversation(activePhone);
+      setChat(data);
+    } catch (err) {
+      console.error("Error enviando mensaje:", err);
+      alert("No se pudo enviar el mensaje. Revisa la conexión o el servidor.");
+    } finally {
+      setSending(false);
+    }
+  }
+
 
   //ESCUCHAR CHAT ACTIVO!
   useEffect(() => {
@@ -78,7 +52,15 @@ export default function PanelHumano2() {
     const load = async () => {
       const data = await getConversation(activePhone);
       if (mounted) {
-        setChat(data);
+        setChat({
+          ...data,
+          messages: data.messages.length
+            ? data.messages
+            : [
+              { from: "user", text: "Hola, necesito ayuda" },
+              { from: "bot", text: "Hola, soy PWBot" }
+            ],
+        });
       }
     };
 
@@ -90,10 +72,6 @@ export default function PanelHumano2() {
       clearInterval(interval);
     };
   }, [activePhone]);
-
-
-
-
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,11 +87,20 @@ export default function PanelHumano2() {
       setConfirmOpen(false);
 
       await setConversationMode(selectedPhone, "human");
-
       setActivePhone(selectedPhone);
 
       const data = await getConversation(selectedPhone);
-      setChat(data); // ✅ ENTERO
+
+      // ✅ Si no hay mensajes, agregamos uno temporal para probar
+      setChat({
+        ...data,
+        messages: data.messages.length
+          ? data.messages
+          : [
+            { from: "user", text: "Hola, necesito ayuda" },
+            { from: "bot", text: "Hola, soy PWBot" }
+          ],
+      });
     } catch (err) {
       console.error("Error tomando control:", err);
     }
@@ -126,24 +113,6 @@ export default function PanelHumano2() {
     setConfirmOpen(false);
   }
 
-  async function release() {
-    await setConversationMode(activePhone, "bot");
-    setChat(null);
-    setActivePhone(null);
-    setSelectedPhone(null);
-  }
-
-  async function send() {
-    if (!message.trim() || !activePhone) return;
-
-    setSending(true);
-    await sendHumanMessage(activePhone, message);
-    setMessage("");
-    setSending(false);
-    const data = await getConversation(activePhone);
-    setChat(data);
-  }
-
   useEffect(() => {
     if (!chat) {
       const timer = setTimeout(() => {
@@ -154,22 +123,8 @@ export default function PanelHumano2() {
     }
   }, [chat]);
 
-  useEffect(() => {
-    // abrir al inicio
-    const openTimer = setTimeout(() => setExpandedNewChat(true), 150);
-
-    // cerrar luego de 5s
-    const closeTimer = setTimeout(() => setExpandedNewChat(false), 5000);
-
-    return () => {
-      clearTimeout(openTimer);
-      clearTimeout(closeTimer);
-    };
-  }, []);
-
-
   return (
-    /* CONTENEDOR GENERAL (respeta Header) */
+    /* CONTENEDOR GENERAL */
     <Box
       sx={{
         flex: 1,
@@ -196,49 +151,44 @@ export default function PanelHumano2() {
           boxShadow: "0 20px 40px rgba(15,23,42,0.35)",
         }}
       >
-        {/* PANEL IZQUIERDO */}
-        <Paper
-          elevation={0}
-          sx={{
-            width: 260,
-            minHeight: 0,
-            borderRadius: 4,
-            bgcolor: "transparent",
-            color: "#e5e7eb",
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {/* HEADER PANEL */}
-          <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
-            <Box
-              sx={{
-                px: 2.5,
-                py: 0.6,
-                borderRadius: 999,
-                bgcolor: "rgba(255,255,255,0.08)",
-                color: "#f8fafc",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              PWBot IA
-            </Box>
-          </Box>
-
-          {/* CONVERSACIONES */}
-          <List
+        {(!isMobile || !activePhone) && (
+          <Paper
+            elevation={0}
             sx={{
-              flex: 1,
-              p: 0,
-              overflowY: "auto",
+              width: 260,
+              minHeight: 0,
+              borderRadius: 4,
+              bgcolor: "transparent",
+              color: "#e5e7eb",
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <PanelHumanoConversaciones onSelect={selectConversation} />
+            {/* HEADER PANEL */}
+            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 0.6,
+                  borderRadius: 999,
+                  bgcolor: "rgba(255,255,255,0.08)",
+                  color: "#f8fafc",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                PWBot IA
+              </Box>
+            </Box>
 
-          </List>
-        </Paper>
+            {/* CONVERSACIONES */}
+            <List sx={{ flex: 1, p: 0, overflowY: "auto" }}>
+              <PanelHumanoConversaciones onSelect={selectConversation} />
+            </List>
+          </Paper>
+        )}
+
 
 
 
@@ -282,6 +232,7 @@ export default function PanelHumano2() {
             }}
           >
             {chat?.messages?.map((m, i) => {
+
               const isUser = m.from === "user";
               const isBot = m.from === "bot";
               const isHuman = m.from === "human";
@@ -318,6 +269,51 @@ export default function PanelHumano2() {
             <div ref={messagesEndRef} />
           </Box>
 
+          {/* INPUT PARA ENVIAR MENSAJES */}
+          {activePhone && chat?.mode === "human" && (
+            <Box
+              sx={{
+                px: isMobile ? 1.5 : 3,
+                py: 1,
+                borderTop: "1px solid #cbd5e1",
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                background: "#f1f5f9",
+              }}
+            >
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") send();
+                }}
+                placeholder="Escribe un mensaje..."
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  fontSize: 14,
+                }}
+              />
+              <button
+                onClick={send}
+                disabled={!message.trim()}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Enviar
+              </button>
+            </Box>
+          )}
 
         </Paper>
 

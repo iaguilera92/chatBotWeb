@@ -35,7 +35,7 @@ export default function PanelHumanoConversaciones({ onSelect }) {
         return (
           <ListItemButton
             key={c.phone}
-            onClick={() => onSelect(c.phone)} // ✅ FIX
+            onClick={() => onSelect(c.phone)}// ✅ FIX
             sx={{
               mb: 0.8,
               px: 1.5,

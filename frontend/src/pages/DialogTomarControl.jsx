@@ -1,8 +1,11 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
+    const [takingControl, setTakingControl] = useState(false);
+
     return (
         <Dialog
             open={confirmOpen}
@@ -214,7 +217,12 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
 
                 <Button
                     variant="contained"
-                    onClick={confirmTake}
+                    onClick={async () => {
+                        setTakingControl(true);
+                        await confirmTake();
+                        setTakingControl(false);
+                    }}
+                    disabled={takingControl}
                     sx={{
                         px: 3,
                         position: "relative",
@@ -278,7 +286,7 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                         },
                     }}
                 >
-                    Tomar control
+                    {takingControl ? "Tomando control..." : "Tomar control"}
                 </Button>
             </DialogActions>
         </Dialog>
