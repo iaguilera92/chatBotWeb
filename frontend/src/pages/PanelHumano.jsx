@@ -26,8 +26,25 @@ export default function PanelHumano() {
     const [openNuevaConv, setOpenNuevaConv] = useState(false);
     const [showHint, setShowHint] = useState(true);
     const [compactNewChat, setCompactNewChat] = useState(false);
-    const [expandedNewChat, setExpandedNewChat] = useState(false);
+    const [showHintMessage, setShowHintMessage] = useState(true);
 
+    const [expandedNewChat, setExpandedNewChat] = useState(false);
+    const iconos = [
+        { src: "/instagram-logo.png", alt: "Instagram" },
+        { src: "/facebook-logo.png", alt: "Facebook" },
+        { src: "/whatsapp-logo.webp", alt: "WhatsApp" },
+        { src: "/tiktok-logo.png", alt: "TikTok" },
+    ];
+    const [phase, setPhase] = useState(0); // 0 = anim inicial, 1 = atenuar, 2 = solo WhatsApp
+
+    useEffect(() => {
+        const timer1 = setTimeout(() => setPhase(1), 1200); // atenuar inactivos
+        const timer2 = setTimeout(() => setPhase(2), 1350); // desaparecer inactivos
+        return () => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+        };
+    }, []);
     const nuevosContactos = conversations.filter(
         (c) =>
             c.messages?.length === 1 &&
@@ -144,6 +161,23 @@ export default function PanelHumano() {
             clearTimeout(closeTimer);
         };
     }, []);
+
+    {/* 🔹 Timer para desaparecer todo después de 3 segundos */ }
+    useEffect(() => {
+        if (showHint) {
+            const timer = setTimeout(() => {
+                setShowHint(false); // desaparece fondo e iconos
+            }, 2700);
+            return () => clearTimeout(timer);
+        }
+    }, [showHint]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowHintMessage(false), 5000); // desaparece a los 5s
+        return () => clearTimeout(timer);
+    }, []);
+
+
 
     function Step({ value, label, color, bg, highlight }) {
         return (
@@ -896,9 +930,143 @@ export default function PanelHumano() {
                     <IniciarConversacion onClose={() => setOpenNuevaConv(false)} />
                 </Dialog>
 
-                <AnimatePresence>
 
-                    {!chat && showHint && (
+                <AnimatePresence>
+                    {showHint && !chat && (
+                        <>
+                            {/* 🔹 FONDO NEGRO BLOQUEANTE */}
+                            <Box
+                                component={motion.div}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0.6 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                                sx={{
+                                    position: "fixed",
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: "#000",
+                                    zIndex: 4,
+                                    pointerEvents: "auto",
+                                }}
+                            />
+
+                            {/* 🔹 ICONOS */}
+                            <Box
+                                component={motion.div}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 0 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                sx={{
+                                    position: "absolute",
+                                    top: "40%",
+                                    left: 0,
+                                    right: 0,
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    zIndex: 5,
+                                    pointerEvents: "none",
+                                    height: 200,
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        position: "relative",
+                                        gap: 0,
+                                    }}
+                                >
+                                    {iconos.map((icon, i) => {
+                                        const isActive = icon.alt === "WhatsApp";
+                                        const whatsappShift = -40;
+                                        let disappearShift = 0;
+
+                                        if (phase === 2 && !isActive) {
+                                            if (icon.alt === "Instagram" || icon.alt === "Facebook") disappearShift = 70;
+                                            if (icon.alt === "TikTok") disappearShift = -70;
+                                        }
+
+                                        let filter = "brightness(1)";
+                                        let opacity = 1;
+
+                                        // 🔹 Mantener gris para los iconos no activos en fase 1 y fase 2
+                                        if (!isActive && (phase === 1 || phase === 2)) {
+                                            filter = icon.alt === "TikTok" ? "grayscale(100%) brightness(60%)" : "grayscale(100%)";
+                                            opacity = 0.4;
+                                        }
+
+
+                                        let zIndex = phase === 2 ? (isActive ? 20 : 10 - i) : 10 - i;
+
+                                        let xShift = 0;
+                                        let yShift = 0;
+                                        if (phase === 1 && !isActive) {
+                                            xShift = -15 * i;
+                                            yShift = -10 * i;
+                                        }
+
+                                        // 🔹 Fase 3: WhatsApp crece continuamente
+                                        const scaleAnim = isActive && phase === 3
+                                            ? [2.3, 1.5, 3.7] // ciclo de crecimiento
+                                            : phase === 2 && isActive
+                                                ? 3
+                                                : 1;
+
+                                        return (
+                                            <motion.img
+                                                key={icon.alt}
+                                                src={icon.src}
+                                                alt={icon.alt}
+                                                style={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    objectFit: "contain",
+                                                    position: "relative",
+                                                    zIndex,
+                                                }}
+                                                initial={{ x: 100, y: 0, opacity: 0 }}
+                                                animate={{
+                                                    x: phase === 2
+                                                        ? isActive
+                                                            ? whatsappShift
+                                                            : disappearShift
+                                                        : xShift,
+                                                    y: phase === 2 ? 0 : yShift,
+                                                    opacity: opacity,   // usa la variable calculada
+                                                    filter: filter,     // usa la variable calculada
+                                                    scale: scaleAnim,
+                                                }}
+                                                transition={{
+                                                    x: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
+                                                    y: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
+                                                    opacity: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
+                                                    scale: { type: "spring", stiffness: 120, damping: 20, repeat: isActive && phase === 3 ? Infinity : 0 },
+                                                    filter: { duration: 1, ease: "easeInOut" },
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+                        </>
+                    )}
+                </AnimatePresence>
+
+
+
+
+
+
+                {/* 🔹 Mensaje inferior independiente */}
+                <AnimatePresence>
+                    {showHintMessage && !chat && (
                         <Box
                             component={motion.div}
                             initial={{ opacity: 0, y: 12 }}
@@ -925,11 +1093,7 @@ export default function PanelHumano() {
                                     background: "linear-gradient(135deg, #1e3a8a, #1f2937)",
                                     boxShadow: "0 20px 40px rgba(0,0,0,.35)",
                                     overflow: "hidden",
-
-                                    /* 🟦 borde base */
                                     border: "1px solid rgba(59,130,246,.35)",
-
-                                    /* 🟦 borde progreso */
                                     "&::after": {
                                         content: '""',
                                         position: "absolute",
@@ -940,18 +1104,12 @@ export default function PanelHumano() {
                                         animation: "borderProgress 5s linear forwards",
                                         pointerEvents: "none",
                                     },
-
                                     "@keyframes borderProgress": {
-                                        "0%": {
-                                            clipPath: "inset(0 100% 0 0)",
-                                        },
-                                        "100%": {
-                                            clipPath: "inset(0 0 0 0)",
-                                        },
+                                        "0%": { clipPath: "inset(0 100% 0 0)" },
+                                        "100%": { clipPath: "inset(0 0 0 0)" },
                                     },
                                 }}
                             >
-
                                 <Typography
                                     sx={{
                                         fontSize: 14,
@@ -967,6 +1125,7 @@ export default function PanelHumano() {
                         </Box>
                     )}
                 </AnimatePresence>
+
 
             </Box>
         </Box>
