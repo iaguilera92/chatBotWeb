@@ -178,10 +178,9 @@ export default function Chat() {
 
                         /* 🌊 Fondo con barrido visible */
                         background:
-                            "linear-gradient(270deg, #075e54, #0b7a6f, #075e54)",
+                            "linear-gradient(270deg, #0f3c4c, #1b6f8a, #0f3c4c)",
                         backgroundSize: "400% 400%",
-                        animation: "headerFlow 6s ease infinite",
-
+                        animation: "headerFlow 8s ease infinite",
                         position: "relative",
 
                         "@keyframes headerFlow": {

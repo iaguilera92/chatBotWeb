@@ -14,16 +14,21 @@ export default function ChatInput({ onSend }) {
     return (
         <Box
             sx={{
-                flexShrink: 0,     // 👈 NUNCA se encoge
-                height: 64,        // 👈 ALTURA FIJA (recomendado)
+                flexShrink: 0,
+                height: 64,
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
                 px: 1.5,
-                borderTop: "1px solid #e5e7eb",
-                backgroundColor: "#fff",
+
+                backgroundColor: "rgba(255,255,255,.85)",
+                backdropFilter: "blur(6px)",
+
+                borderTop: "1px solid rgba(160,220,255,.35)",
+                boxShadow: "0 -2px 10px rgba(160,220,255,.15)",
             }}
         >
+
             <TextField
                 fullWidth
                 multiline
@@ -41,11 +46,21 @@ export default function ChatInput({ onSend }) {
                 sx={{
                     "& .MuiOutlinedInput-root": {
                         borderRadius: 999,
-                        backgroundColor: "#f3f4f6",
+                        backgroundColor: "rgba(240,250,255,.9)",
                         paddingRight: 1,
+                        border: "1px solid rgba(160,220,255,.45)",
+                        transition: "all .25s ease",
+
+                        "&.Mui-focused": {
+                            boxShadow: "0 0 12px rgba(160,220,255,.7)",
+                            backgroundColor: "#ffffff",
+                        },
                     },
                     "& .MuiOutlinedInput-notchedOutline": {
                         border: "none",
+                    },
+                    textarea: {
+                        color: "#0f3c4c",
                     },
                 }}
             />
@@ -56,11 +71,24 @@ export default function ChatInput({ onSend }) {
                 sx={{
                     width: 40,
                     height: 40,
-                    bgcolor: value.trim() ? "#22c55e" : "#e5e7eb",
-                    color: value.trim() ? "white" : "#9ca3af",
-                    transition: "all 0.2s ease",
+                    borderRadius: "50%",
+
+                    bgcolor: value.trim()
+                        ? "rgba(160,220,255,.9)"
+                        : "rgba(200,220,235,.6)",
+
+                    color: value.trim() ? "#0f3c4c" : "#94a3b8",
+
+                    boxShadow: value.trim()
+                        ? "0 0 12px rgba(160,220,255,.9)"
+                        : "none",
+
+                    transition: "all .25s ease",
+
                     "&:hover": {
-                        bgcolor: value.trim() ? "#16a34a" : "#e5e7eb",
+                        bgcolor: value.trim()
+                            ? "rgba(180,235,255,1)"
+                            : "rgba(200,220,235,.6)",
                     },
                 }}
             >

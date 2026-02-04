@@ -6,7 +6,6 @@ import TypingIndicator from "./TypingIndicator";
 export default function ChatContainer({ messages, isTyping }) {
     const bottomRef = useRef(null);
 
-    // ⚠️ iOS-safe autoscroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({
             behavior: isTyping ? "auto" : "smooth",
@@ -18,42 +17,77 @@ export default function ChatContainer({ messages, isTyping }) {
         <Box
             sx={{
                 flex: 1,
-                minHeight: 0,          // ⭐ CLAVE
+                minHeight: 0,
                 overflowY: "auto",
-                px: { xs: 1.3, md: 1.5 },   // 👈 MÁS AIRE LATERAL
-                pt: { xs: 2.5, md: 2.5 },
-                pb: { xs: 0.5, md: 2 },
+                px: 2,
+                py: 2,
+                backgroundImage: `
+  repeating-linear-gradient(
+    90deg,
+    rgba(170,230,255,.35),
+    rgba(170,230,255,.35) 1px,
+    transparent 1px,
+    transparent 32px
+  ),
+  repeating-linear-gradient(
+    rgba(170,230,255,.22),
+    rgba(170,230,255,.22) 1px,
+    transparent 1px,
+    transparent 32px
+  )
+`,
+                backgroundSize: "32px 32px",
+
+                filter: "drop-shadow(0 0 6px rgba(170,230,255,.55))",
+                animation: "blueprintNeon 18s linear infinite",
+
+                "@keyframes blueprintNeon": {
+                    "0%": {
+                        backgroundPosition: "0 0",
+                        filter: "drop-shadow(0 0 4px rgba(170,230,255,.35))",
+                    },
+                    "50%": {
+                        filter: "drop-shadow(0 0 9px rgba(170,230,255,.8))",
+                    },
+                    "100%": {
+                        backgroundPosition: "32px 32px",
+                        filter: "drop-shadow(0 0 4px rgba(170,230,255,.35))",
+                    },
+                },
 
                 WebkitOverflowScrolling: "touch",
-                backgroundColor: "#efeae2",
-                backgroundImage:
-                    "linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%)",
-                backgroundSize: "40px 40px",
             }}
         >
 
-            {messages
-                .filter(
-                    msg =>
-                        (typeof msg.text === "string" && msg.text.trim().length > 0) ||
-                        typeof msg.image === "string" ||
-                        typeof msg.video === "string"
-                )
-                .map((msg, i) => (
-                    <ChatMessage
-                        key={i}
-                        from={msg.from}
-                        text={msg.text}
-                        image={msg.image}
-                        video={msg.video}
-                        status={msg.status}
-                        timestamp={msg.timestamp}
-                    />
-                ))}
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2.2, // separación entre cards
+                }}
+            >
+                {messages
+                    .filter(
+                        (msg) =>
+                            (typeof msg.text === "string" && msg.text.trim().length > 0) ||
+                            typeof msg.image === "string" ||
+                            typeof msg.video === "string"
+                    )
+                    .map((msg, i) => (
+                        <ChatMessage
+                            key={i}
+                            from={msg.from}
+                            text={msg.text}
+                            image={msg.image}
+                            video={msg.video}
+                            status={msg.status}
+                            timestamp={msg.timestamp}
+                        />
+                    ))}
 
-            {isTyping && <TypingIndicator />}
+                {isTyping && <TypingIndicator />}
+            </Box>
 
-            {/* 🔽 Scroll anchor */}
             <div ref={bottomRef} />
         </Box>
     );

@@ -32,9 +32,37 @@ export default function ChatMessage({ from, text, image, video, status, timestam
             sx={{
                 display: "flex",
                 justifyContent: isUser ? "flex-end" : "flex-start",
-                mb: 1.2
+                mb: 1.2,
+
+                animation: isUser
+                    ? "slideFromRight .75s cubic-bezier(0.22, 1, 0.36, 1)"
+                    : "slideFromLeft .75s cubic-bezier(0.22, 1, 0.36, 1)",
+
+                "@keyframes slideFromLeft": {
+                    "0%": {
+                        opacity: 0,
+                        transform: "translateX(-28px)",
+                    },
+                    "100%": {
+                        opacity: 1,
+                        transform: "translateX(0)",
+                    },
+                },
+
+                "@keyframes slideFromRight": {
+                    "0%": {
+                        opacity: 0,
+                        transform: "translateX(28px)",
+                    },
+                    "100%": {
+                        opacity: 1,
+                        transform: "translateX(0)",
+                    },
+                },
             }}
         >
+
+
             <Box
                 sx={{
                     maxWidth: "75%",
@@ -44,7 +72,7 @@ export default function ChatMessage({ from, text, image, video, status, timestam
                     pb: image ? 2.8 : isLongText ? 2.6 : 1.2,
                     pr: 7.6,
                     borderRadius: 2,
-                    backgroundColor: image && !safeText ? "transparent" : isUser ? "#d9fdd3" : "#fff",
+                    backgroundColor: image && !safeText ? "transparent" : isUser ? "#E0FBFF" : "#fff",
                     boxShadow: image && !safeText ? "none" : "0 1px 1px rgba(0,0,0,0.1)",
                     position: "relative",
                     minHeight: 32

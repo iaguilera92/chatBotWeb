@@ -408,9 +408,7 @@ export default function PanelHumano2() {
                 textAlign="center"
                 sx={{ maxWidth: 300 }}
               >
-                Selecciona una conversación a la izquierda para ver los mensajes y poder
-                responder desde este panel. Aquí también verás el historial y podrás
-                tomar control de las conversaciones.
+                Selecciona una conversación.
               </Typography>
             </Box>
           )}
