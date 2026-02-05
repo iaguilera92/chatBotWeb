@@ -25,6 +25,7 @@ npm run dev
 
 //BACKEND
 Fastify Creador de APIs escalable con Node.js
+npm install -g ngrok
 
 //CORREO - SMTP SERVIDOR
 pwbot.ia@gmail.com

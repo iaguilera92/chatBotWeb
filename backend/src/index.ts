@@ -3,7 +3,7 @@ import "./env";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { chatRoutes } from "./routes/chat";
-import { whatsappMetaWebhook } from "./webhook-meta";
+import { whatsappMetaWebhookTest } from "./webhook-meta";
 import { operatorRoutes } from "./routes/operator";
 import { conversationRoutes } from "./routes/conversations";
 
@@ -14,7 +14,7 @@ async function startServer() {
     await app.register(cors, { origin: "*" });
 
     // 🔗 Rutas API
-    whatsappMetaWebhook(app);        // /webhook/whatsapp/meta
+    whatsappMetaWebhookTest(app);        // /webhook/whatsapp/meta
     await chatRoutes(app);           // POST /api/chat
     await operatorRoutes(app);       // /api/operator/*
     await conversationRoutes(app);   // /api/conversations/*
