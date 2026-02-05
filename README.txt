@@ -54,15 +54,31 @@ INSTRUCCIONES CLIENTE:
 - PWBot IA + Panel Humano:
   - $29.990 CLP (mensual)
 
+Docker - Redis Local
+(Ubuntun credenciales)
+iaguilera92
+pass (La de siempre)
+INICIAR REDIS DESDE UBUNTU (Docker): sudo service redis-server start
+CREAR CONVERSACIÓN: npx ts-node src/scripts/crearConvo.ts
+CREAR LISTADO: npx ts-node src/scripts/listarConvos.ts
+
 N° BOT: 56946873014
+PHONE NUMBER ID (PRD): 902796302924417
 
 ESTRUCTURA:
 Estoy desarrollando un chatbot con Groq usando REACT Node.js, tengo dos capas (backend/frontend),
 tengo interfaz para simular un chat con wsp, en backend/src tengo mis prompts, routes y services, en la raiz el .env, uso Fastify.
 En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,pages, services). 
-Uso Brevo para mis correos automatizados.
+Uso Brevo para mis correos automatizados. En mi local uso Docker para usar Redis (para las conversaciones).
 Mi hosting es Render ya tengo publicado API y FRONT. Estoy usando WhatsApp Cloud API (Meta) para mi N° fono.
 Uso Redis en mi Render para guardar las conversaciones, tengo un panel humano, historial de conversaciones e iniciar conversacion.
-Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para que me habiliten el telefono y estamos probando.
+Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para que me habiliten el telefono y estamos probando, Ya tengo mi token permanente y mi numero conectado.
+
+
+Actualmente:
+ahora el objetivo es que yo le hable al numero de prueba que me dio wsp cloud api 
+‎15551919322 desde mi telefono personal 56992914526, y 15551919322 me responda usando la API https://pwbot-zfzs.onrender.com/webhook/whatsapp/meta del chatbot identificador de la app 4874426486116979
+
+
 
 https://pwbot-zfzs.onrender.com/webhook/whatsapp/meta?hub.mode=subscribe&hub.verify_token=pwbot_verify_token&hub.challenge=123456

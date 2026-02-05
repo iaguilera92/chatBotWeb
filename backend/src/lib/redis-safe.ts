@@ -2,25 +2,20 @@ import Redis from "ioredis";
 
 let redis: Redis | null = null;
 
-function getRedis(): Redis | null {
-    if (!process.env.REDIS_URL) {
-        // localhost: no crear instancia
-        return null;
-    }
-
+function getRedis(): Redis {
     if (!redis) {
+        if (!process.env.REDIS_URL) {
+            throw new Error("REDIS_URL no definido en el .env");
+        }
+
         redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
 
         redis.on("connect", () => {
-            if (process.env.NODE_ENV !== "development") {
-                console.log("🧠 Redis conectado");
-            }
+            console.log("🧠 Redis conectado");
         });
 
         redis.on("error", (err) => {
-            if (process.env.NODE_ENV !== "development") {
-                console.error("❌ Redis error", err);
-            }
+            console.error("❌ Redis error", err);
         });
     }
 

@@ -74,8 +74,9 @@ export function whatsappMetaWebhookTest(app: FastifyInstance) {
 
             if (botReply?.trim()) {
                 await saveMessage(from, "bot", botReply);
-                console.log("📤 Enviando mensaje del bot a cliente...");
-                await sendWhatsAppMessage(from, botReply);
+                console.log("📤 [SIMULACION] El bot respondería:", botReply);
+                // 🔹 Modo prueba: no enviamos a WhatsApp real
+                // await sendWhatsAppMessage(from, botReply);
             } else {
                 console.log("⚠️ Bot no generó respuesta");
             }

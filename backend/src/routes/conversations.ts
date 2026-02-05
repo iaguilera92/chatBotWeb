@@ -3,9 +3,9 @@ import {
     listConversations,
     getConversation,
     setMode,
+    Conversation,
 } from "../services/conversations.store";
 import { normalizePhone } from "../services/phone.util";
-import { Conversation } from "../services/conversations.store";
 
 export async function conversationRoutes(app: FastifyInstance) {
 
@@ -13,7 +13,7 @@ export async function conversationRoutes(app: FastifyInstance) {
     app.get("/api/conversations", async () => {
         const conversations = await listConversations();
 
-        return conversations.map((c: Conversation) => ({
+        return conversations.map((c) => ({
             phone: c.phone,
             lastMessageAt: c.lastMessageAt,
             mode: c.mode,
@@ -27,10 +27,20 @@ export async function conversationRoutes(app: FastifyInstance) {
 
     // 💬 Obtener historial completo
     app.get("/api/conversations/:phone", async (req: any) => {
-        const phoneRaw = req.params.phone;
-        const phone = normalizePhone(phoneRaw);
+        const phone = normalizePhone(req.params.phone);
+        const conversation = await getConversation(phone);
 
-        return await getConversation(phone);
+        return {
+            phone: conversation.phone,
+            mode: conversation.mode,
+            needsHuman: conversation.needsHuman,
+            lastMessageAt: conversation.lastMessageAt,
+            messages: conversation.messages.map((msg) => ({
+                from: msg.from,
+                text: msg.text,
+                ts: msg.ts,
+            })),
+        };
     });
 
     // 🔀 Cambiar modo bot ↔ humano
@@ -43,6 +53,14 @@ export async function conversationRoutes(app: FastifyInstance) {
         }
 
         await setMode(phone, mode);
-        return { ok: true, mode };
+
+        // Devuelve la conversación actualizada para que el front la recargue
+        const updated = await getConversation(phone);
+        return {
+            ok: true,
+            mode: updated.mode,
+            needsHuman: updated.needsHuman,
+            messages: updated.messages,
+        };
     });
 }
