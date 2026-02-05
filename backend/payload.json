@@ -1,0 +1,26 @@
+{
+    "entry": [
+        {
+            "changes": [
+                {
+                    "value": {
+                        "metadata": {
+                            "phone_number_id": "902796302924417"
+                        },
+                        "messages": [
+                            {
+                                "from": "56992914526",
+                                "id": "ABCD1234",
+                                "timestamp": "1234567890",
+                                "text": {
+                                    "body": "Hola bot"
+                                },
+                                "type": "text"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
