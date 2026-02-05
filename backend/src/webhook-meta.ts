@@ -26,7 +26,8 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
         try {
             console.log("📩 WEBHOOK FULL:", JSON.stringify(req.body, null, 2));
 
-            const value = req.body?.entry?.[0]?.changes?.[0]?.value;
+            const value = req.body?.entry?.[0]?.changes?.[0]?.value || req.body.value || req.body;
+
             if (!value || !Array.isArray(value.messages)) {
                 console.log("⚠️ No hay mensajes en este webhook");
                 return reply.send("EVENT_RECEIVED");
@@ -51,6 +52,10 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
 
             // 💾 Guardamos mensaje entrante
             await saveMessage(from, "user", text);
+
+            // 🚨 TEST: enviar mensaje de prueba directamente
+            await sendWhatsAppMessage(from, "Hola desde el bot de prueba!");
+
             const convo = await getConversation(from);
 
             console.log("🗂️ Conversación completa:", convo);
@@ -77,6 +82,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 from: m.from === "bot" ? "bot" : "user",
                 text: m.text,
             })));
+            console.log("📋 Mensajes al bot:", convo.messages);
 
             console.log("🤖 Respuesta del bot:", botReply);
 
