@@ -13,9 +13,11 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
         const challenge = req.query["hub.challenge"];
 
         if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+            console.log("✅ Webhook verificado correctamente");
             return reply.send(challenge);
         }
 
+        console.warn("❌ Intento de verificación fallido");
         return reply.code(403).send("Forbidden");
     });
 
@@ -25,21 +27,39 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             console.log("📩 WEBHOOK FULL:", JSON.stringify(req.body, null, 2));
 
             const value = req.body?.entry?.[0]?.changes?.[0]?.value;
-            if (!value || !Array.isArray(value.messages)) return reply.send("EVENT_RECEIVED");
+            if (!value || !Array.isArray(value.messages)) {
+                console.log("⚠️ No hay mensajes en este webhook");
+                return reply.send("EVENT_RECEIVED");
+            }
 
             const message = value.messages.find((m: any) => m.type === "text");
-            if (!message) return reply.send("EVENT_RECEIVED");
+            if (!message) {
+                console.log("⚠️ Mensaje no es de texto, se ignora");
+                return reply.send("EVENT_RECEIVED");
+            }
 
             const from = normalizePhone(message.from);
             const text = message.text?.body?.trim();
-            if (!from || !text) return reply.send("EVENT_RECEIVED");
+
+            console.log("📱 Número cliente normalizado:", from);
+            console.log("✉️ Texto recibido:", text);
+
+            if (!from || !text) {
+                console.warn("❌ Número o texto inválido, se ignora");
+                return reply.send("EVENT_RECEIVED");
+            }
 
             // 💾 Guardamos mensaje entrante
             await saveMessage(from, "user", text);
             const convo = await getConversation(from);
 
+            console.log("🗂️ Conversación completa:", convo);
+
             // 👤 Modo humano
-            if (convo.mode === "human") return reply.send("EVENT_RECEIVED");
+            if (convo.mode === "human") {
+                console.log("👤 Conversación en modo humano, no responde el bot");
+                return reply.send("EVENT_RECEIVED");
+            }
 
             // 🔀 Escalamiento a humano
             const humanKeywords = ["ejecutivo", "persona", "humano", "agente", "hablar", "asesor"];
@@ -47,6 +67,7 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 await setMode(from, "human");
                 const notice = "👤 Te comunico con un ejecutivo, un momento por favor.";
                 await saveMessage(from, "bot", notice);
+                console.log("🔀 Escalando a humano:", notice);
                 await sendWhatsAppMessage(from, notice);
                 return reply.send("EVENT_RECEIVED");
             }
@@ -57,9 +78,14 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 text: m.text,
             })));
 
+            console.log("🤖 Respuesta del bot:", botReply);
+
             if (botReply?.trim()) {
                 await saveMessage(from, "bot", botReply);
+                console.log("📤 Enviando mensaje del bot a cliente...");
                 await sendWhatsAppMessage(from, botReply);
+            } else {
+                console.log("⚠️ Bot no generó respuesta");
             }
 
             return reply.send("EVENT_RECEIVED");
