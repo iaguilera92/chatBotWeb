@@ -1,10 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { handleChat } from "./services/chat.handler";
 import { sendWhatsAppMessage } from "./services/whatsapp.service";
-import { saveMessage, getConversation, setMode } from "./services/conversations.store";
+import { saveMessage, getConversation } from "./services/conversations.store";
 import { normalizePhone } from "./services/phone.util";
 
-export function whatsappMetaWebhookTest(app: FastifyInstance) {
+export function whatsappMetaWebhook(app: FastifyInstance) {
 
     // 🔐 Verificación del webhook Meta
     app.get("/webhook/whatsapp/meta", async (req: any, reply) => {
@@ -13,80 +13,78 @@ export function whatsappMetaWebhookTest(app: FastifyInstance) {
         const challenge = req.query["hub.challenge"];
 
         if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-            console.log("✅ Webhook verificado correctamente");
+            console.log("[Webhook] ✅ Verificado correctamente");
             return reply.send(challenge);
         }
 
-        console.warn("❌ Intento de verificación fallido");
+        console.warn("[Webhook] ❌ Verificación fallida");
         return reply.code(403).send("Forbidden");
     });
 
-    // 📩 Mensajes entrantes desde WhatsApp (modo prueba: siempre responde)
+    // 📩 Mensajes entrantes desde WhatsApp
     app.post("/webhook/whatsapp/meta", async (req: any, reply) => {
         try {
-            console.log("📩 WEBHOOK FULL:", JSON.stringify(req.body, null, 2));
+            const body = req.body;
+            const env = process.env.NODE_ENV || "development";
+            console.log(`[Webhook][${env}] 📩 Payload recibido:`, JSON.stringify(body));
 
-            // Normalizamos payload (soporta prueba o real)
-            const value = req.body?.entry?.[0]?.changes?.[0]?.value || req.body.value || req.body;
+            // Compatibilidad sandbox + real
+            const entryValue = body?.entry?.[0]?.changes?.[0]?.value || body.value || body;
 
-            if (!value || !Array.isArray(value.messages)) {
-                console.log("⚠️ No hay mensajes en este webhook");
+            if (!entryValue || !Array.isArray(entryValue.messages)) {
+                console.log(`[Webhook][${env}] ⚠️ No hay mensajes en este webhook`);
                 return reply.send("EVENT_RECEIVED");
             }
 
-            const message = value.messages.find((m: any) => m.type === "text");
+            // Tomamos solo el primer mensaje de texto
+            const message = entryValue.messages.find((m: any) => m.type === "text");
             if (!message) {
-                console.log("⚠️ Mensaje no es de texto, se ignora");
+                console.log(`[Webhook][${env}] ⚠️ Mensaje no es de texto, se ignora`);
                 return reply.send("EVENT_RECEIVED");
             }
 
             const from = normalizePhone(message.from);
             const text = message.text?.body?.trim();
 
-            console.log("📱 Número cliente normalizado:", from);
-            console.log("✉️ Texto recibido:", text);
-
             if (!from || !text) {
-                console.warn("❌ Número o texto inválido, se ignora");
+                console.warn(`[Webhook][${env}] ❌ Número o texto inválido, se ignora`);
                 return reply.send("EVENT_RECEIVED");
             }
 
-            // 💾 Guardamos mensaje entrante
+            console.log(`[Webhook][${env}] 📱 Número cliente:`, from);
+            console.log(`[Webhook][${env}] ✉️ Texto recibido:`, text);
+
+            // Guardamos mensaje entrante
             await saveMessage(from, "user", text);
 
-            // 🚨 TEST: enviar mensaje de prueba directamente (opcional)
-            // await sendWhatsAppMessage(from, "Hola desde el bot de prueba!");
-
+            // Obtenemos la conversación completa
             const convo = await getConversation(from);
-            console.log("🗂️ Conversación completa:", convo);
+            console.log(`[Webhook][${env}] 🗂️ Conversación completa:`, convo);
 
-            // 🔀 Ignoramos modo humano temporalmente
-            // if (convo.mode === "human") return reply.send("EVENT_RECEIVED");
-
-            // 🤖 Llamamos al bot
+            // Llamamos al bot
             const botReply = await handleChat(convo.messages.map(m => ({
                 from: m.from === "bot" ? "bot" : "user",
                 text: m.text,
             })));
 
-            console.log("📋 Mensajes al bot:", convo.messages);
-            console.log("🤖 Respuesta del bot:", botReply);
+            console.log(`[Webhook][${env}] 🤖 Respuesta del bot:`, botReply);
 
             if (botReply?.trim()) {
                 await saveMessage(from, "bot", botReply);
-                console.log("📤 El bot respondería:", botReply);
 
-                // 🔹 Enviar mensaje real a WhatsApp
-                await sendWhatsAppMessage(from, botReply); // 🔹 Descomenta esta línea
+                // 🔹 Enviar siempre, incluso en desarrollo
+                await sendWhatsAppMessage(from, botReply);
+                console.log(`[Webhook][${process.env.NODE_ENV || "development"}] ✅ Mensaje enviado a WhatsApp a:`, from);
             }
+
             else {
-                console.log("⚠️ Bot no generó respuesta");
+                console.log(`[Webhook][${env}] ⚠️ Bot no generó respuesta`);
             }
 
             return reply.send("EVENT_RECEIVED");
 
         } catch (err) {
-            console.error("❌ Error en webhook WhatsApp:", err);
+            console.error("[Webhook] ❌ Error procesando mensaje:", err);
             return reply.send("EVENT_RECEIVED");
         }
     });

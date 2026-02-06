@@ -1,21 +1,20 @@
 export async function sendWhatsAppMessage(to: string, body: string) {
-    console.log("📤 WhatsApp → Preparando mensaje para:", to);
-    console.log("📝 Contenido:", body);
-
+    const formattedTo = String(to).replace(/\D/g, "");
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const token = process.env.WHATSAPP_TOKEN;
+    const apiVersion = process.env.WHATSAPP_API_VERSION || "v18.0";
 
     if (!phoneNumberId || !token) {
         console.error("❌ Faltan variables de entorno WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_TOKEN");
         throw new Error("Faltan variables de entorno de WhatsApp API");
     }
 
-    const formattedTo = to.replace(/\D/g, ""); // +56 9 4687 3014 → 56946873014
+    if (process.env.NODE_ENV === "development") {
+        console.log("📤 [DEV MODE] Simulando envío a WhatsApp:", formattedTo, body);
+        return { simulated: true };
+    }
 
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-    console.log("🔗 URL de WhatsApp API:", url);
-    console.log("TOKEN (inicio):", token?.slice(0, 10), "...");
-
+    const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
     const payload = {
         messaging_product: "whatsapp",
         to: formattedTo,
@@ -23,7 +22,9 @@ export async function sendWhatsAppMessage(to: string, body: string) {
         text: { body },
     };
 
-    console.log("📦 Payload WhatsApp API:", JSON.stringify(payload, null, 2));
+    console.log("📤 WhatsApp → Preparando mensaje para:", formattedTo);
+    console.log("🔗 URL:", url);
+    console.log("📦 Payload:", JSON.stringify(payload, null, 2));
 
     try {
         const res = await fetch(url, {

@@ -58,6 +58,8 @@ Docker - Redis Local
 (Ubuntun credenciales)
 iaguilera92
 pass (La de siempre)
+ngrok http 3000
+
 INICIAR REDIS DESDE UBUNTU (Docker): sudo service redis-server start
 CREAR CONVERSACIÓN: npx ts-node src/scripts/crearConvo.ts
 CREAR LISTADO: npx ts-node src/scripts/listarConvos.ts
