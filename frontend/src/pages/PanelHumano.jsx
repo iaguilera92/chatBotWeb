@@ -568,10 +568,10 @@ export default function PanelHumano() {
       radial-gradient(
         circle at center,
         rgba(59,130,246,.05)  0%,
-        rgba(59,130,246,.05)  26%,
-        rgba(59,130,246,.05) 44%,
-        rgba(59,130,246,.05) 60%,
-        transparent 80%
+        rgba(59,130,246,.05)  15%,
+        rgba(59,130,246,.05) 25%,
+        rgba(59,130,246,.05) 35%,
+        transparent 50%
       ),
 linear-gradient(rgba(29,78,216,.045) 1px, transparent 1px),
 linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
@@ -885,6 +885,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                     sx={{
                                                         width: 10,
                                                         height: 10,
+                                                        mb: 0,
                                                         borderRadius: "50%",
                                                         backgroundColor: "#dc2626",
                                                         boxShadow: "0 0 4px rgba(220,38,38,0.5)",
@@ -924,9 +925,6 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             );
                         })}
                     </List>
-
-
-
                 </Paper>
 
                 {/* CHAT */}
@@ -939,25 +937,26 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             flexDirection: "column",
                         }}
                     >
-                        {/* HEADER */}
+                        {/* HEADER MEJORADO */}
                         <Box
                             sx={{
-                                width: "100%",          // 👈 ocupa todo el ancho
+                                width: "100%",
                                 px: 2,
-                                py: 0.8,
+                                py: 1,
                                 borderBottom: "1px solid #e5e7eb",
-                                background: "#ffffff",
+                                backgroundColor: "#ffffff",
                                 position: "sticky",
-                                top: '0', // justo debajo del Toolbar
+                                top: 0,
                                 zIndex: 2,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
                                 gap: 1,
+                                boxShadow: "0 2px 6px rgba(0,0,0,0.05)", // sombra sutil
                             }}
                         >
                             {/* IZQUIERDA */}
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                                 {isMobile && (
                                     <IconButton
                                         size="small"
@@ -965,29 +964,41 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                             setChat(null);
                                             setActivePhone(null);
                                         }}
+                                        sx={{
+                                            transition: "all 0.2s ease",
+                                            "&:hover": { bgcolor: "rgba(59,130,246,.1)" },
+                                        }}
                                     >
                                         <ArrowBackIosNewIcon fontSize="small" />
                                     </IconButton>
                                 )}
 
                                 <Box>
-                                    <Typography fontWeight={600} lineHeight={1.1}>
+                                    {/* Teléfono */}
+                                    <Typography
+                                        fontWeight={600}
+                                        lineHeight={1.2}
+                                        fontSize={15}
+                                        sx={{ mb: 0.5 }}
+                                    >
                                         {chat.phone}
                                     </Typography>
 
+                                    {/* Modo Humano / IA */}
                                     <Box
                                         sx={{
                                             display: "inline-flex",
                                             alignItems: "center",
                                             gap: 0.6,
-                                            mt: 0.3,
                                             px: 1,
-                                            py: 0.2,
-                                            borderRadius: 1,
+                                            py: 0.3,
+                                            borderRadius: 2,
                                             fontSize: 11,
                                             fontWeight: 700,
+                                            transition: "all 0.3s ease",
                                             backgroundColor: isHumanMode ? "#ecfdf5" : "#eff6ff",
                                             color: isHumanMode ? "#065f46" : "#1e40af",
+                                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                                         }}
                                     >
                                         {isHumanMode ? (
@@ -1005,23 +1016,39 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 </Box>
                             </Box>
 
-                            {/* DERECHA */}
+                            {/* DERECHA: Botón "Devolver a IA" */}
                             {isHumanMode && (
                                 <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="warning"
                                     onClick={release}
                                     sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
                                         textTransform: "none",
                                         fontWeight: 600,
-                                        borderRadius: 2,
-                                        px: 1.8,
+                                        fontSize: 13,
+                                        borderRadius: 2, // pill pequeño, discreto
+                                        px: 2,
+                                        py: 0.5,
+                                        backgroundColor: "#f0f5ff", // azul muy suave
+                                        color: "#1e40af",
+                                        border: "1px solid rgba(29,78,216,0.3)",
+                                        boxShadow: "none",
+                                        transition: "all 0.2s ease",
                                         whiteSpace: "nowrap",
+                                        "&:hover": {
+                                            backgroundColor: "#e0e7ff", // leve cambio al hover
+                                            borderColor: "rgba(29,78,216,0.5)",
+                                        },
+                                        "&:active": {
+                                            backgroundColor: "#dbeafe",
+                                        },
                                     }}
                                 >
-                                    Devolver a IA
+                                    <SmartToyIcon sx={{ fontSize: 16 }} />
+                                    Devolver IA
                                 </Button>
+
                             )}
                         </Box>
 
@@ -1074,7 +1101,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                         {/* INPUT */}
                         <Box
                             sx={{
-                                width: "100%",          // 👈 ocupa todo el ancho
+                                width: "100%",
                                 px: 1.5,
                                 py: 1.2,
                                 background: "linear-gradient(180deg,#ffffff,#f8fafc)",
@@ -1095,13 +1122,17 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 <Box
                                     sx={{
                                         flex: 1,
-                                        height: 44,
                                         borderRadius: 999,
-                                        border: "1px solid #e5e7eb",
-                                        background: "#ffffff",
-                                        px: 2,
+                                        border: "1px solid rgba(160,220,255,.45)",
+                                        backgroundColor: "rgba(240,250,255,.9)",
                                         display: "flex",
                                         alignItems: "center",
+                                        px: 2,
+                                        transition: "all .25s ease",
+                                        "&:focus-within": {
+                                            boxShadow: "0 0 12px rgba(160,220,255,.7)",
+                                            backgroundColor: "#ffffff",
+                                        },
                                     }}
                                 >
                                     <InputBase
@@ -1118,8 +1149,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                         }}
                                         sx={{
                                             width: "100%",
-                                            fontSize: 14,
+                                            fontSize: 16, // 🔹 evita zoom en mobile
                                             lineHeight: 1.4,
+                                            color: "#0f3c4c",
                                         }}
                                     />
                                 </Box>
@@ -1129,29 +1161,30 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     disabled={sending || !message.trim()}
                                     onClick={send}
                                     sx={{
-                                        width: 44,
-                                        height: 44,
-                                        flexShrink: 0,
+                                        width: 40,
+                                        height: 40,
                                         borderRadius: "50%",
-                                        background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
-                                        color: "#ffffff",
-                                        boxShadow: "0 4px 10px rgba(37,99,235,.35)",
-
+                                        flexShrink: 0,
+                                        bgcolor: message.trim()
+                                            ? "rgba(160,220,255,.9)"
+                                            : "rgba(200,220,235,.6)",
+                                        color: message.trim() ? "#0f3c4c" : "#94a3b8",
+                                        boxShadow: message.trim()
+                                            ? "0 0 12px rgba(160,220,255,.9)"
+                                            : "none",
+                                        transition: "all .25s ease",
                                         "&:hover": {
-                                            background: "linear-gradient(135deg,#1d4ed8,#1e40af)",
-                                        },
-
-                                        "&.Mui-disabled": {
-                                            background: "#e5e7eb",
-                                            color: "#9ca3af",
-                                            boxShadow: "none",
+                                            bgcolor: message.trim()
+                                                ? "rgba(180,235,255,1)"
+                                                : "rgba(200,220,235,.6)",
                                         },
                                     }}
                                 >
-                                    <SendIcon sx={{ fontSize: 18 }} />
+                                    <SendIcon fontSize="small" />
                                 </IconButton>
                             </Box>
                         </Box>
+
                     </Box>
                 )}
 
