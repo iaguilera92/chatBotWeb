@@ -54,7 +54,10 @@ INSTRUCCIONES CLIENTE:
 - PWBot IA + Panel Humano:
   - $29.990 CLP (mensual)
 
-Docker - Redis Local
+ACTIVA Docker Desktop (APP)
+COMANDO CMD: docker exec -it redis-chatbot redis-cli
+
+
 (Ubuntun credenciales)
 iaguilera92
 pass (La de siempre)
@@ -74,12 +77,8 @@ En el frontend tengo public, src esta App.jsx (tengo carpeta components, config,
 Uso Brevo para mis correos automatizados. En mi local uso Docker para usar Redis (para las conversaciones).
 Mi hosting es Render ya tengo publicado API y FRONT. Estoy usando WhatsApp Cloud API (Meta) para mi N° fono.
 Uso Redis en mi Render para guardar las conversaciones, tengo un panel humano, historial de conversaciones e iniciar conversacion.
-Habla resumido y con energia. Actualmente esta en revisión mi CLOUD API WSP para que me habiliten el telefono y estamos probando, Ya tengo mi token permanente y mi numero conectado.
-
-
-Actualmente:
-ahora el objetivo es que yo le hable al numero de prueba que me dio wsp cloud api 
-‎15551919322 desde mi telefono personal 56992914526, y 15551919322 me responda usando la API https://pwbot-zfzs.onrender.com/webhook/whatsapp/meta del chatbot identificador de la app 4874426486116979
+Actualmente esta en revisión mi CLOUD API WSP para que me verifiquen el negocio para producción, Ya tengo mi token permanente y mi numero conectado.
+Habla resumido y con energia.
 
 
 

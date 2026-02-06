@@ -24,7 +24,14 @@ export default function Header() {
         elevation={1}
         sx={{ backgroundColor: "#111827", color: "white" }}
       >
-        <Toolbar sx={{ px: 2 }}>
+        <Toolbar
+          sx={{
+            px: 2,
+            minHeight: 30,  // tu toolbar
+            "@media (min-width:600px)": { minHeight: 30 },
+          }}
+        >
+
           {/* IZQUIERDA */}
           <Box
             sx={{

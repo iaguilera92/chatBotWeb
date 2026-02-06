@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { IconButton, Box, Paper, Typography, List, ListItemButton, TextField, Button, Stack, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, } from "@mui/material";
+import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material";
 import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api";
 import { sendHumanMessage } from "../services/operator.api";
-import TuneIcon from "@mui/icons-material/Tune";
 import { motion, AnimatePresence } from "framer-motion";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
@@ -20,45 +19,109 @@ export default function PanelHumano() {
     const [chat, setChat] = useState(null);
     const [message, setMessage] = useState("");
     const [sending, setSending] = useState(false);
-    const [selectedPhone, setSelectedPhone] = useState(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const isHumanMode = chat?.mode === "human";
     const [openNuevaConv, setOpenNuevaConv] = useState(false);
     const [showHint, setShowHint] = useState(true);
-    const [compactNewChat, setCompactNewChat] = useState(false);
     const [showHintMessage, setShowHintMessage] = useState(true);
-
+    const [speed, setSpeed] = useState(1);
+    const [showClap, setShowClap] = useState(false);
+    const prevAtendidosRef = useRef(0);
     const [expandedNewChat, setExpandedNewChat] = useState(false);
+    const [phase, setPhase] = useState(0); // 0 = anim inicial, 1 = atenuar, 2 = solo WhatsApp
+    const atendidosRef = useRef(new Set());
+    const conversacionesAtendidas = atendidosRef.current.size;
+    //const conversacionesAtendidas = 1000; TEST
+    const clientesEnEspera = conversations.filter((c) => c.needsHuman && c.mode !== "human").length;
+    const isFirstRenderRef = useRef(true);
+    const allowClapRef = useRef(false);
+    const prevNeedsHumanRef = useRef(new Map());
+    const initializedRef = useRef(false);
+    const [conversacionObjetivo, setConversacionObjetivo] = useState(null);
+    const ocultarHeaderChat = isHumanMode && chat;
     const iconos = [
         { src: "/instagram-logo.png", alt: "Instagram" },
         { src: "/facebook-logo.png", alt: "Facebook" },
         { src: "/whatsapp-logo.webp", alt: "WhatsApp" },
         { src: "/tiktok-logo.png", alt: "TikTok" },
     ];
-    const [phase, setPhase] = useState(0); // 0 = anim inicial, 1 = atenuar, 2 = solo WhatsApp
+
+    //CARGAR ATENDIDOS PRIMERA VEZ
+
 
     useEffect(() => {
-        const timer1 = setTimeout(() => setPhase(1), 1200); // atenuar inactivos
-        const timer2 = setTimeout(() => setPhase(2), 1350); // desaparecer inactivos
+        if (!conversations.length) return;
+        if (initializedRef.current) return;
+
+        conversations.forEach(c => {
+            if (c.mode === "human" && c.needsHuman === false) {
+                atendidosRef.current.add(c.phone);
+            }
+            prevNeedsHumanRef.current.set(c.phone, c.needsHuman);
+        });
+
+        initializedRef.current = true;
+    }, [conversations]);
+
+
+
+    //ATENDIDOS
+    useEffect(() => {
+        conversations.forEach(c => {
+            const prevNeeds = prevNeedsHumanRef.current.get(c.phone);
+
+            // 👀 transición: estaba en espera → ya no lo está
+            if (prevNeeds === true && c.needsHuman === false) {
+                atendidosRef.current.add(c.phone);
+            }
+
+            // guardar estado actual
+            prevNeedsHumanRef.current.set(c.phone, c.needsHuman);
+        });
+    }, [conversations]);
+
+
+    useEffect(() => {
+        const timer1 = setTimeout(() => setPhase(1), 1200 / speed);
+        const timer2 = setTimeout(() => setPhase(2), 1350 / speed);
+
         return () => {
             clearTimeout(timer1);
             clearTimeout(timer2);
         };
-    }, []);
-    const nuevosContactos = conversations.filter(
-        (c) =>
-            c.messages?.length === 1 &&
-            c.messages[0]?.from === "user"
-    ).length;
+    }, [speed]);
+
+    //DETECTAR AUMENTO DE ATENDIDOS
+    useEffect(() => {
+        let timer;
+        const prev = prevAtendidosRef.current;
+
+        if (isFirstRenderRef.current) {
+            prevAtendidosRef.current = conversacionesAtendidas;
+            isFirstRenderRef.current = false;
+            return;
+        }
+
+        // 🚫 SIN ACCIÓN HUMANA → NO APLAUSOS
+        if (!allowClapRef.current) {
+            prevAtendidosRef.current = conversacionesAtendidas;
+            return;
+        }
+
+        if (conversacionesAtendidas > prev) {
+            setShowClap(true);
+            timer = setTimeout(() => setShowClap(false), 900);
+        }
+
+        // 👇 CLAVE: consumir SIEMPRE la acción humana
+        allowClapRef.current = false;
+
+        prevAtendidosRef.current = conversacionesAtendidas;
+
+        return () => clearTimeout(timer);
+    }, [conversacionesAtendidas]);
 
 
-    const clientesEnEspera = conversations.filter(
-        (c) => c.needsHuman && c.mode !== "human"
-    ).length;
-
-    const conversacionesAtendidas = conversations.filter(
-        (c) => c.mode === "human"
-    ).length;
     const [shakeEnEspera, setShakeEnEspera] = useState(false);
     const conversationsSorted = [...conversations].sort((a, b) => {
         // Prioridad: needsHuman primero
@@ -78,11 +141,6 @@ export default function PanelHumano() {
         load();
         const t = setInterval(load, 5000);
         return () => clearInterval(t);
-    }, []);
-
-    useEffect(() => {
-        const t = setTimeout(() => setCompactNewChat(true), 5000);
-        return () => clearTimeout(t);
     }, []);
 
     //ESCUCHAR CHAT ACTIVO!
@@ -105,17 +163,12 @@ export default function PanelHumano() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chat?.messages]);
 
-    function selectConversation(phone) {
-        setSelectedPhone(phone);
+    function selectConversation(conversation) {
+        setConversacionObjetivo({
+            ...conversation,
+            prioritaria: false, // modo normal
+        });
         setConfirmOpen(true);
-    }
-
-    async function confirmTake() {
-        setConfirmOpen(false);
-        await setConversationMode(selectedPhone, "human");
-        setActivePhone(selectedPhone);
-        const data = await getConversation(selectedPhone);
-        setChat(data);
     }
 
     function cancelTake() {
@@ -129,15 +182,63 @@ export default function PanelHumano() {
         setActivePhone(null);
     }
 
+    //ENVIAR MENSAJE CLIENTE
     async function send() {
-        if (!message.trim() || !activePhone || !isHumanMode) return;
+        if (!message.trim() || !activePhone) return;
+
         setSending(true);
+
+        // 1️⃣ Forzar modo humano
+        await setConversationMode(activePhone, "human");
+
+        // 🚩 MARCAR que este send puede generar atendido
+        allowClapRef.current = true;
+
+        // 2️⃣ Enviar mensaje humano
         await sendHumanMessage(activePhone, message);
         setMessage("");
-        setSending(false);
+
+        // 3️⃣ Recargar conversación
         const data = await getConversation(activePhone);
         setChat(data);
+
+        // 4️⃣ Recargar lista (esto dispara los efectos)
+        const list = await getConversations();
+        setConversations(list);
+
+        setSending(false);
     }
+
+    function formatTimeAgo(minutesAgo) {
+        if (minutesAgo < 60) {
+            return `${minutesAgo}m`;
+        } else if (minutesAgo < 1440) { // menos de 24 horas
+            const h = Math.floor(minutesAgo / 60);
+            const m = minutesAgo % 60;
+            return `${h}h${m > 0 ? ` ${m}m` : ""}`;
+        } else { // más de 24 horas
+            const days = Math.floor(minutesAgo / 1440);
+            const h = Math.floor((minutesAgo % 1440) / 60);
+            const m = minutesAgo % 60;
+            return `${days}d${h > 0 ? ` ${h}h` : ""}${m > 0 ? ` ${m}m` : ""}`;
+        }
+    }
+    async function confirmarToma(conversacion) {
+        if (!conversacion) return;
+
+        const phone = conversacion.phone;
+
+        setConfirmOpen(false);
+        setConversacionObjetivo(null); // 👈 importante
+
+        await setConversationMode(phone, "human");
+        setActivePhone(phone);
+
+        const data = await getConversation(phone);
+        setChat(data);
+    }
+
+
 
     useEffect(() => {
         if (!chat) {
@@ -151,7 +252,7 @@ export default function PanelHumano() {
 
     useEffect(() => {
         // abrir al inicio
-        const openTimer = setTimeout(() => setExpandedNewChat(true), 150);
+        const openTimer = setTimeout(() => setExpandedNewChat(true), 3500);
 
         // cerrar luego de 5s
         const closeTimer = setTimeout(() => setExpandedNewChat(false), 5000);
@@ -172,96 +273,11 @@ export default function PanelHumano() {
         }
     }, [showHint]);
 
+
     useEffect(() => {
         const timer = setTimeout(() => setShowHintMessage(false), 5000); // desaparece a los 5s
         return () => clearTimeout(timer);
     }, []);
-
-
-
-    function Step({ value, label, color, bg, highlight }) {
-        return (
-            <Box
-                sx={{
-                    flex: 1,                         // 👈 se mantiene
-                    height: 56,
-                    px: 1,
-                    borderRadius: 3,
-                    background: bg,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-
-                    /* 👇 SOLO AJUSTE REAL */
-                    maxWidth: { md: 140 },           // desktop más compacto
-                    mx: "auto",                      // 👈 centrado perfecto
-
-                    boxShadow: highlight
-                        ? "0 0 0 2px rgba(220,38,38,.25), 0 8px 20px rgba(0,0,0,.12)"
-                        : "0 6px 16px rgba(0,0,0,.08)",
-                }}
-            >
-                <Typography
-                    sx={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color,
-                        lineHeight: 1,
-                    }}
-                >
-                    {value}
-                </Typography>
-
-                <Box sx={{ mt: 0.4, textAlign: "center" }}>
-                    {label.split(" ").slice(0, 2).map((w, i) => (
-                        <Typography
-                            key={i}
-                            sx={{
-                                fontSize: 10.5,
-                                fontWeight: 700,
-                                letterSpacing: 0.3,
-                                lineHeight: 1.05,
-                                textTransform: "uppercase",
-                                color: "#374151",
-                            }}
-                        >
-                            {w}
-                        </Typography>
-                    ))}
-                </Box>
-            </Box>
-        );
-    }
-
-
-    function Arrow({ active }) {
-        return (
-            <Box
-                component={motion.div}
-                animate={
-                    active
-                        ? { opacity: [0.4, 1, 0.4] }
-                        : { opacity: 0.35 }
-                }
-                transition={{
-                    repeat: active ? Infinity : 0,
-                    duration: 1.6,
-                    ease: "easeInOut",
-                }}
-                sx={{
-                    mx: 0.6,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: active ? "#dc2626" : "#9ca3af",
-                    lineHeight: 1,
-                }}
-            >
-                →
-            </Box>
-        );
-    }
 
 
     useEffect(() => {
@@ -294,119 +310,332 @@ export default function PanelHumano() {
         };
     }, [clientesEnEspera]);
 
+    //EN ESPERA CLICK
+    const abrirPrimeraConversacionPendiente = () => {
+        if (!conversations.length) return;
 
-    function IndicadorFunnel({
-        nuevos,
-        enEspera,
-        atendidos,
-        shakeEnEspera, // 👈 FALTA ESTO
-    }) {
+        // 🔴 En espera = needsHuman true y NO en modo humano
+        const pendientes = conversations.filter(
+            c => c.needsHuman === true && c.mode !== "human"
+        );
+
+        if (!pendientes.length) return;
+
+        // 🕒 La más antigua (más tiempo esperando)
+        const masUrgente = pendientes.sort((a, b) => {
+            const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+            const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+            return da - db;
+        })[0];
+
+        setConversacionObjetivo({
+            ...masUrgente,
+            prioritaria: true,
+        });
+
+        setConfirmOpen(true);
+    };
+
+
+    //INDICADORES
+    function NumeroIndicador({ value }) {
+        const digits = value.toString().length;
+
+        // escala progresiva según cantidad de dígitos
+        const fontSize =
+            digits <= 2 ? 36 :
+                digits === 3 ? 30 :
+                    digits === 4 ? 26 :
+                        22;
+
         return (
-            <Box
+            <Typography
+                fontWeight={900}
+                lineHeight={1}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
-                    gap: 0.2,
+                    fontSize,
+                    minWidth: digits <= 2 ? 36 : 44,
+                    textAlign: "right",
+                    transition: "font-size .25s ease",
+                    whiteSpace: "nowrap",
                 }}
             >
-                <Step
-                    value={nuevos}
-                    label="Nuevos Contactos"
-                    color="#2563eb"
-                    bg="linear-gradient(135deg,#eff6ff,#dbeafe)"
-                />
+                {value}
+            </Typography>
+        );
+    }
 
-                <Arrow active={enEspera > 0} />
-
+    function IndicadorEnEspera({ value, onClick }) {
+        return (
+            <Box
+                component={motion.div}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                animate={
+                    value > 0
+                        ? {
+                            boxShadow: [
+                                "0 0 0 0 rgba(220,38,38,.4)",
+                                "0 0 0 10px rgba(220,38,38,0)",
+                            ],
+                        }
+                        : {}
+                }
+                transition={{
+                    duration: 1.2,
+                    repeat: value > 0 ? Infinity : 0,
+                }}
+                onClick={onClick}
+                sx={{
+                    flex: 1,
+                    height: 82,                 // 👈 ALTURA FIJA
+                    px: 2,
+                    borderRadius: 3,
+                    background: "linear-gradient(135deg,#dc2626,#991b1b)",
+                    color: "#fff",
+                    cursor: value > 0 ? "pointer" : "default",
+                    userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                }}
+            >
+                {/* IZQUIERDA */}
                 <Box
-                    key={shakeEnEspera ? `shake-${Date.now()}` : "idle"}
-                    component={motion.div}
-                    initial={{ rotate: 0, skewX: 0, skewY: 0 }}
-                    animate={{
-                        rotate: [-1.2, 1.2, -0.9, 0.9, -0.5, 0.5, 0],
-                        skewX: [0.8, -0.8, 0.6, -0.6, 0.3, -0.3, 0],
-                        skewY: [-0.8, 0.8, -0.6, 0.6, -0.3, 0.3, 0],
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        minHeight: 46, // 👈 reserva espacio
                     }}
-                    transition={{ duration: 0.9, ease: "easeInOut" }}
-                    style={{ flex: 1, position: "relative", transformOrigin: "center center" }}
                 >
-                    {/* 🔴 OVERLAY DE ALERTA (intensifica fondo) */}
                     <Box
                         sx={{
-                            position: "absolute",
-                            inset: 0,
-                            borderRadius: 3,
-                            background:
-                                "rgba(220,38,38,.18)",
-                            opacity: shakeEnEspera ? 1 : 0,
-                            transition: "opacity .25s ease",
-                            pointerEvents: "none",
-                            zIndex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.1,
+                            whiteSpace: "nowrap",
                         }}
-                    />
+                    >
+                        <Typography fontSize={12} fontWeight={700} sx={{ opacity: 0.85 }}>
+                            🚨
+                        </Typography>
 
-                    {/* CONTENIDO REAL */}
-                    <Box sx={{ position: "relative", zIndex: 2 }}>
-                        <Step
-                            value={enEspera}
-                            label="En Espera"
-                            color="#dc2626"
-                            bg="linear-gradient(135deg,#fee2e2,#fecaca)"
-                        />
+                        <Typography fontSize={12} fontWeight={700} sx={{ opacity: 0.85 }}>
+                            EN ESPERA
+                        </Typography>
                     </Box>
+
+                    <Typography
+                        fontSize={11}
+                        sx={{
+                            opacity: 0.9,
+                            lineHeight: 1.1,
+                            mt: 0.2,
+                            height: 14,           // mantiene altura
+                            whiteSpace: "nowrap", // fuerza a una sola línea
+                            overflow: "hidden",   // recorta si algo se sale
+                            textOverflow: "ellipsis", // opcional, pone "..." si no cabe
+                        }}
+                    >
+                        Click para atender!
+                    </Typography>
                 </Box>
 
+                {/* DERECHA */}
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "space-between",
+                        mt: 0.5,
+                    }}
+                >
+                    <Box /> {/* espacio izquierdo */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            height: "100%",
+                            minWidth: 56, // 👈 reserva espacio para 1k, 10k
+                        }}
+                    >
+                        <NumeroIndicador value={value} />
+                    </Box>
 
-
-                <Arrow active={enEspera > 0} />
-
-                <Step
-                    value={atendidos}
-                    label="Clientes Atendidos"
-                    color={clientesEnEspera > 0 ? "#6b7280" : "#059669"}
-                    bg={
-                        clientesEnEspera > 0
-                            ? "linear-gradient(135deg,#f9fafb,#f3f4f6)"
-                            : "linear-gradient(135deg,#ecfdf5,#d1fae5)"
-                    }
-                />
+                </Box>
 
             </Box>
         );
     }
+    function IndicadorAtendidos({ value }) {
+        return (
+            <Box
+                sx={{
+                    flex: 1,
+                    height: 82,              // 👈 MISMA ALTURA
+                    px: 2,
+                    borderRadius: 3,
+                    background: "linear-gradient(135deg,#10b981,#059669)",
+                    color: "#fff",
+                    boxShadow: "0 10px 25px rgba(16,185,129,.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                }}
+            >
+                {/* IZQUIERDA */}
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        minHeight: 46,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.1,
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        <Typography fontSize={12} fontWeight={700} sx={{ opacity: 0.85 }}>
+                            🎉
+                        </Typography>
 
+                        <Typography fontSize={12} fontWeight={700} sx={{ opacity: 0.85 }}>
+                            ATENDIDOS
+                        </Typography>
+                    </Box>
+
+
+                    <Typography
+                        fontSize={11}
+                        sx={{
+                            opacity: 0.9,
+                            lineHeight: 1.1,
+                            mt: 0.2,
+                            height: 14,           // mantiene altura
+                            whiteSpace: "nowrap", // fuerza a una sola línea
+                            overflow: "hidden",   // recorta si algo se sale
+                            textOverflow: "ellipsis", // opcional, pone "..." si no cabe
+                        }}
+                    >
+                        ¡Buen trabajo!👏
+                    </Typography>
+
+                </Box>
+
+                {/* DERECHA */}
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        mt: 0.5,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            height: "100%",
+                            minWidth: 56, // 👈 reserva espacio para 1k, 10k
+                        }}
+                    >
+                        <NumeroIndicador value={value} />
+                    </Box>
+
+                </Box>
+            </Box>
+        );
+    }
 
 
     return (
 
         <Box
             sx={{
-                height: "100%",
+                minHeight: "100vh",
                 width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",     // 🚫 scroll global
+                position: "relative",
+
+                /* 🌤️ FONDO CLARO CON AZUL REAL + GRID AZUL ELEGANTE */
+                backgroundImage: `
+      radial-gradient(
+        circle at center,
+        rgba(59,130,246,.05)  0%,
+        rgba(59,130,246,.05)  26%,
+        rgba(59,130,246,.05) 44%,
+        rgba(59,130,246,.05) 60%,
+        transparent 80%
+      ),
+linear-gradient(rgba(29,78,216,.045) 1px, transparent 1px),
+linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
+    `,
+                backgroundSize: `
+      100% 100%,
+      56px 56px,
+      56px 56px
+    `,
+                backgroundPosition: "center",
+                backgroundAttachment: "fixed",
+
+                backgroundColor: "#f8fafc",
+                overflow: "hidden",
             }}
         >
 
-            {/* INDICADORES */}
-            <Box
-                sx={{
-                    px: 3,
-                    py: 2,
-                    borderBottom: "1px solid #e5e7eb",
-                    background: "linear-gradient(180deg,#ffffff,#f8fafc)",
-                }}
-            >
-                <IndicadorFunnel
-                    nuevos={nuevosContactos}
-                    enEspera={clientesEnEspera}
-                    atendidos={conversacionesAtendidas}
-                    shakeEnEspera={shakeEnEspera}
-                />
 
-            </Box>
+
+            {/* INDICADORES */}
+            {!ocultarHeaderChat && (
+                <Box
+                    sx={{
+                        display: "flex",
+                        gap: 0.7,
+                        px: 1,
+                        py: 1.5,
+                        borderBottom: "1px solid #e5e7eb",
+                    }}
+                >
+                    <IndicadorEnEspera
+                        value={clientesEnEspera}
+                        onClick={() => abrirPrimeraConversacionPendiente()}
+                    />
+
+                    <Box sx={{ position: "relative", flex: 1 }}>
+                        <IndicadorAtendidos value={conversacionesAtendidas} />
+
+                        <AnimatePresence>
+                            {showClap && (
+                                <Box
+                                    component={motion.div}
+                                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                                    animate={{ opacity: 1, y: -10, scale: 1 }}
+                                    exit={{ opacity: 0, y: -30, scale: 1.1 }}
+                                    transition={{ duration: 0.6, ease: "easeOut" }}
+                                    sx={{
+                                        position: "absolute",
+                                        top: 10,
+                                        right: 12,
+                                        zIndex: 10,
+                                        pointerEvents: "none",
+                                        fontSize: 28,
+                                        filter: "drop-shadow(0 6px 10px rgba(0,0,0,.25))",
+                                    }}
+                                >
+                                    👏👏👏
+                                </Box>
+                            )}
+                        </AnimatePresence>
+                    </Box>
+
+                </Box>
+            )}
 
 
             <Box
@@ -419,22 +648,28 @@ export default function PanelHumano() {
             >
                 {/* SIDEBAR */}
                 <Paper
+                    elevation={0}
                     sx={{
                         width: isMobile ? "100%" : 320,
-                        flexShrink: 0,      // 👈 CLAVE
+                        flexShrink: 0,
                         borderRadius: 0,
-                        borderRight: "1px solid #e5e7eb",
-                        background: "#ffffff",
+                        borderRight: "1px solid rgba(255,255,255,.08)",
+
+                        /* 🔥 CLAVE */
+                        backgroundColor: "transparent",
+                        backdropFilter: "blur(6px)",
+
                         display: isMobile && activePhone ? "none" : "flex",
                         flexDirection: "column",
                     }}
                 >
+
                     <Box
                         sx={{
+                            height: 35,
                             px: 2,
-                            py: 1.5,
+                            py: 0,
                             borderBottom: "1px solid #e5e7eb",
-                            background: "linear-gradient(180deg, #f8fafc, #ffffff)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
@@ -443,15 +678,23 @@ export default function PanelHumano() {
                     >
                         {/* IZQUIERDA */}
                         <Box sx={{ minWidth: 0 }}>
-                            <Typography fontWeight={600} noWrap>
+                            <Typography
+                                fontWeight={600}
+                                noWrap
+                                fontSize={isMobile ? 14 : 16}
+                            >
                                 Conversaciones
                             </Typography>
-                            <Typography fontSize={12} color="text.secondary" noWrap>
-                                {clientesEnEspera > 0
-                                    ? `${clientesEnEspera} en espera · atención requerida`
-                                    : `${conversations.length} activas · sin pendientes`}
-                            </Typography>
+
+                            {!isMobile && (
+                                <Typography fontSize={12} color="text.secondary" noWrap>
+                                    {clientesEnEspera > 0
+                                        ? `${clientesEnEspera} en espera · atención requerida`
+                                        : `${conversations.length} activas · sin pendientes`}
+                                </Typography>
+                            )}
                         </Box>
+
 
                         {/* DERECHA */}
                         <motion.div
@@ -485,20 +728,28 @@ export default function PanelHumano() {
                                     overflow: "hidden",
                                     whiteSpace: "nowrap",
 
-                                    color: "#312e81",
-                                    borderColor: "#c7d2fe",
-                                    background: "linear-gradient(135deg,#eef2ff,#f8fafc)",
-                                    boxShadow: "0 2px 6px rgba(0,0,0,.08)",
+                                    /* 🎯 AZUL REAL */
+                                    color: "#1e3a8a",          // blue-800
+                                    borderColor: "#bfdbfe",    // blue-200
+                                    background: "linear-gradient(135deg,#eff6ff,#f8fafc)",
+                                    boxShadow: "0 2px 6px rgba(30,58,138,.10)",
 
-                                    transition: "padding .45s ease",
+                                    transition: "all .35s ease",
 
                                     "&:hover": {
-                                        background: "linear-gradient(135deg,#e0e7ff,#eef2ff)",
-                                        borderColor: "#818cf8",
-                                        boxShadow: "0 0 0 3px rgba(99,102,241,.25)",
+                                        background: "linear-gradient(135deg,#dbeafe,#eff6ff)",
+                                        borderColor: "#60a5fa",
+                                        boxShadow: "0 0 0 3px rgba(59,130,246,.22)",
+                                        transform: "translateY(-1px)",
+                                    },
+
+                                    "&:active": {
+                                        transform: "translateY(0)",
+                                        boxShadow: "0 2px 4px rgba(30,58,138,.15)",
                                     },
                                 }}
                             >
+
                                 <Box
                                     sx={{
                                         display: "flex",
@@ -540,45 +791,46 @@ export default function PanelHumano() {
                                 </Box>
                             </Button>
                         </motion.div>
-
-
                     </Box>
 
 
-                    <List sx={{ p: 1, overflowY: "auto", flex: 1 }}>
+                    <List
+                        sx={{
+                            p: 1,
+                            overflowY: "auto",
+                            flex: 1,
+
+                            backdropFilter: "blur(4px)",
+                        }}
+                    >
+
                         {conversationsSorted.map((c) => {
                             const isHuman = c.mode === "human";
                             const selected = c.phone === activePhone;
                             const needsAttention = c.needsHuman && !isHuman;
 
                             const minutesAgo = c.lastMessageAt
-                                ? Math.floor(
-                                    (Date.now() -
-                                        new Date(c.lastMessageAt).getTime()) /
-                                    60000
-                                )
+                                ? Math.floor((Date.now() - new Date(c.lastMessageAt).getTime()) / 60000)
                                 : null;
 
                             return (
                                 <ListItemButton
                                     key={c.phone}
-                                    onClick={() => selectConversation(c.phone)}
+                                    onClick={() => selectConversation(c)}
+
                                     sx={{
-                                        minWidth: 0,
                                         mb: 0.6,
                                         borderRadius: 2,
-                                        alignItems: "flex-start",
-                                        position: "relative",
+                                        border: "1px solid #e2e8f0",
+                                        boxShadow: selected ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
                                         backgroundColor: selected
-                                            ? "#eef2ff"
+                                            ? "#dbeafe" // azul pastel
                                             : needsAttention
-                                                ? "#fef2f2"   // 👈 fondo alerta suave
-                                                : "transparent",
-
+                                                ? "#fee2e2" // rojo pastel
+                                                : "#f0fdf4", // verde pastel muy suave para conversaciones normales
                                         "&:hover": {
-                                            backgroundColor: needsAttention
-                                                ? "#fee2e2"
-                                                : "#f1f5f9",
+                                            backgroundColor: needsAttention ? "#fecaca" : "#e0f2fe",
+                                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                                         },
 
                                         "&::before": {
@@ -587,64 +839,62 @@ export default function PanelHumano() {
                                             left: 0,
                                             top: 8,
                                             bottom: 8,
-                                            width: 3,
+                                            width: 4,
                                             borderRadius: 2,
                                             backgroundColor: needsAttention
                                                 ? "#dc2626"
                                                 : isHuman
                                                     ? "#10b981"
                                                     : "#3b82f6",
-                                            opacity: selected ? 1 : 0.7,
+                                            opacity: needsAttention ? 1 : selected ? 1 : 0.6,
                                         },
-                                    }}
 
+                                    }}
                                 >
+                                    {/* Avatar */}
                                     <Box sx={{ position: "relative", mr: 1.5 }}>
                                         <Box
+                                            component="img"
+                                            src={isHuman ? "/user.webp" : "/PWBot.png"}
+                                            alt={isHuman ? "Atendido" : "Control Bot"}
                                             sx={{
                                                 width: 36,
                                                 height: 36,
                                                 borderRadius: "50%",
-                                                background: "linear-gradient(135deg, #e0e7ff, #f8fafc)",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                fontWeight: 700,
-                                                fontSize: 13,
+                                                objectFit: "cover",
+                                                border: "1px solid #e2e8f0",
+                                                boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                                                transition: "transform .2s, box-shadow .2s",
+                                                "&:hover": {
+                                                    transform: "scale(1.1)",
+                                                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                                                },
                                             }}
-                                        >
-                                            {c.phone.slice(-2)}
-                                        </Box>
-
-                                        {needsAttention && (
-                                            <Box
-                                                sx={{
-                                                    position: "absolute",
-                                                    bottom: -1,
-                                                    right: -1,
-                                                    width: 10,
-                                                    height: 10,
-                                                    borderRadius: "50%",
-                                                    backgroundColor: "#dc2626",
-                                                    border: "2px solid #fff",
-                                                }}
-                                            />
-                                        )}
+                                        />
                                     </Box>
 
+                                    {/* Contenido */}
+                                    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                            <Typography fontWeight={500} noWrap>
+                                                {c.phone}
+                                            </Typography>
 
-                                    <Box sx={{ flex: 1 }}>
-                                        <Typography fontWeight={500}>
-                                            {c.phone}
-                                        </Typography>
-                                        <Box
-                                            sx={{
-                                                mt: 0.4,
-                                                display: "flex",
-                                                gap: 0.6,
-                                                flexWrap: "wrap",
-                                            }}
-                                        >
+                                            {needsAttention && (
+                                                <Box
+                                                    sx={{
+                                                        width: 10,
+                                                        height: 10,
+                                                        borderRadius: "50%",
+                                                        backgroundColor: "#dc2626",
+                                                        boxShadow: "0 0 4px rgba(220,38,38,0.5)",
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>
+
+
+                                        <Box sx={{ mt: 0.4, display: "flex", gap: 0.6, flexWrap: "wrap" }}>
                                             <Box
                                                 sx={{
                                                     px: 1,
@@ -652,37 +902,39 @@ export default function PanelHumano() {
                                                     borderRadius: 1,
                                                     fontSize: 11,
                                                     fontWeight: 700,
-                                                    backgroundColor: isHuman
-                                                        ? "#ecfdf5"
-                                                        : "#eff6ff",
+                                                    color: isHuman ? "#065f46" : "#1e40af",
+                                                    backgroundColor: isHuman ? "#ecfdf5" : "#eff6ff",
+                                                    border: isHuman ? "1px solid #10b981" : "1px solid #3b82f6",
                                                 }}
                                             >
-                                                {isHuman
-                                                    ? "CONTROL HUMANO"
-                                                    : "AUTOMATIZADO"}
+                                                {isHuman ? "ATENDIDO" : "CONTROL BOT"}
                                             </Box>
+
+
+
                                             {minutesAgo !== null && (
-                                                <Typography
-                                                    fontSize={11}
-                                                    color="text.secondary"
-                                                >
-                                                    hace {minutesAgo} min
+                                                <Typography fontSize={11} color="text.secondary" noWrap sx={{ opacity: 0.75 }}>
+                                                    hace {formatTimeAgo(minutesAgo)}
                                                 </Typography>
                                             )}
                                         </Box>
                                     </Box>
+
                                 </ListItemButton>
                             );
                         })}
                     </List>
+
+
+
                 </Paper>
 
                 {/* CHAT */}
                 {chat && (
                     <Box
                         sx={{
-                            flex: 1,
-                            minWidth: 0,      // 👈 CLAVE
+                            width: "100%",            // 👈 ocupa todo el ancho
+                            height: "calc(100vh - 45px)", // 👈 altura del Toolbar
                             display: "flex",
                             flexDirection: "column",
                         }}
@@ -690,12 +942,13 @@ export default function PanelHumano() {
                         {/* HEADER */}
                         <Box
                             sx={{
+                                width: "100%",          // 👈 ocupa todo el ancho
                                 px: 2,
-                                py: 1.5,
+                                py: 0.8,
                                 borderBottom: "1px solid #e5e7eb",
                                 background: "#ffffff",
                                 position: "sticky",
-                                top: 0,
+                                top: '0', // justo debajo del Toolbar
                                 zIndex: 2,
                                 display: "flex",
                                 alignItems: "center",
@@ -772,10 +1025,10 @@ export default function PanelHumano() {
                             )}
                         </Box>
 
-
                         {/* MENSAJES */}
                         <Box
                             sx={{
+                                width: "100%",          // 👈 ocupa todo el ancho
                                 flex: 1,
                                 px: isMobile ? 1.5 : 3,
                                 py: 2,
@@ -792,17 +1045,13 @@ export default function PanelHumano() {
                                         key={i}
                                         sx={{
                                             display: "flex",
-                                            justifyContent: isUser
-                                                ? "flex-start"
-                                                : "flex-end",
+                                            justifyContent: isUser ? "flex-start" : "flex-end",
                                             mb: 1.5,
                                         }}
                                     >
                                         <Box
                                             sx={{
-                                                maxWidth: isMobile
-                                                    ? "90%"
-                                                    : "70%",
+                                                maxWidth: isMobile ? "90%" : "70%",
                                                 px: 2,
                                                 py: 1.2,
                                                 borderRadius: 3,
@@ -820,18 +1069,19 @@ export default function PanelHumano() {
                                     </Box>
                                 );
                             })}
-                            <div ref={messagesEndRef} />
                         </Box>
 
                         {/* INPUT */}
                         <Box
                             sx={{
+                                width: "100%",          // 👈 ocupa todo el ancho
                                 px: 1.5,
                                 py: 1.2,
                                 background: "linear-gradient(180deg,#ffffff,#f8fafc)",
                                 borderTop: "1px solid #e5e7eb",
                                 position: "sticky",
                                 bottom: 0,
+                                zIndex: 2,
                             }}
                         >
                             <Box
@@ -845,7 +1095,7 @@ export default function PanelHumano() {
                                 <Box
                                     sx={{
                                         flex: 1,
-                                        height: 44,                 // 👈 MISMA ALTURA
+                                        height: 44,
                                         borderRadius: 999,
                                         border: "1px solid #e5e7eb",
                                         background: "#ffffff",
@@ -879,18 +1129,16 @@ export default function PanelHumano() {
                                     disabled={sending || !message.trim()}
                                     onClick={send}
                                     sx={{
-                                        width: 44,                  // 👈 MISMA ALTURA
+                                        width: 44,
                                         height: 44,
                                         flexShrink: 0,
                                         borderRadius: "50%",
-                                        background:
-                                            "linear-gradient(135deg,#2563eb,#1d4ed8)",
+                                        background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
                                         color: "#ffffff",
                                         boxShadow: "0 4px 10px rgba(37,99,235,.35)",
 
                                         "&:hover": {
-                                            background:
-                                                "linear-gradient(135deg,#1d4ed8,#1e40af)",
+                                            background: "linear-gradient(135deg,#1d4ed8,#1e40af)",
                                         },
 
                                         "&.Mui-disabled": {
@@ -904,19 +1152,24 @@ export default function PanelHumano() {
                                 </IconButton>
                             </Box>
                         </Box>
-
-
                     </Box>
                 )}
+
 
 
 
                 {/* DIALOG TOMAR CONTROL */}
                 <DialogTomarControl
                     confirmOpen={confirmOpen}
-                    cancelTake={cancelTake}
-                    confirmTake={confirmTake}
+                    conversacion={conversacionObjetivo}
+                    cancelTake={() => {
+                        setConfirmOpen(false);
+                        setConversacionObjetivo(null);
+                    }}
+                    confirmTake={() => confirmarToma(conversacionObjetivo)}
                 />
+
+
                 {/* DIALOG INICIAR CONVERSACIÓN */}
                 <Dialog
                     open={openNuevaConv}
@@ -937,19 +1190,25 @@ export default function PanelHumano() {
                             {/* 🔹 FONDO NEGRO BLOQUEANTE */}
                             <Box
                                 component={motion.div}
+                                onClick={() => {
+                                    if (speed === 1) {
+                                        // Primer click → acelera
+                                        setSpeed(5);
+                                    } else {
+                                        // Segundo click → cerrar todo
+                                        setShowHint(false);
+                                    }
+                                }}
                                 initial={{ opacity: 0 }}
-                                animate={{ opacity: 0.6 }}
+                                animate={{ opacity: 0.9 }}
                                 exit={{ opacity: 0 }}
-                                transition={{ duration: 0.5 }}
+                                transition={{ duration: 0.5 / speed }}
                                 sx={{
                                     position: "fixed",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "#000",
+                                    inset: 0,
+                                    backgroundColor: "#000000",
                                     zIndex: 4,
-                                    pointerEvents: "auto",
+                                    cursor: "pointer", // 👈 UX clara
                                 }}
                             />
 
@@ -1044,12 +1303,33 @@ export default function PanelHumano() {
                                                     scale: scaleAnim,
                                                 }}
                                                 transition={{
-                                                    x: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
-                                                    y: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
-                                                    opacity: { type: "spring", stiffness: 120, damping: 20, delay: phase < 2 ? i * 0.15 : 0 },
-                                                    scale: { type: "spring", stiffness: 120, damping: 20, repeat: isActive && phase === 3 ? Infinity : 0 },
-                                                    filter: { duration: 1, ease: "easeInOut" },
+                                                    x: {
+                                                        type: "spring",
+                                                        stiffness: 120 * speed,
+                                                        damping: 20,
+                                                        delay: phase < 2 ? (i * 0.15) / speed : 0,
+                                                    },
+                                                    y: {
+                                                        type: "spring",
+                                                        stiffness: 120 * speed,
+                                                        damping: 20,
+                                                        delay: phase < 2 ? (i * 0.15) / speed : 0,
+                                                    },
+                                                    opacity: {
+                                                        type: "spring",
+                                                        stiffness: 120 * speed,
+                                                        damping: 20,
+                                                        delay: phase < 2 ? (i * 0.15) / speed : 0,
+                                                    },
+                                                    scale: {
+                                                        type: "spring",
+                                                        stiffness: 120 * speed,
+                                                        damping: 20,
+                                                        repeat: isActive && phase === 3 ? Infinity : 0,
+                                                    },
+                                                    filter: { duration: 1 / speed, ease: "easeInOut" },
                                                 }}
+
                                             />
                                         );
                                     })}

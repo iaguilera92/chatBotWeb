@@ -1,10 +1,20 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 
-const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
+const DialogTomarControl = ({ confirmOpen, conversacion, cancelTake, confirmTake }) => {
     const [takingControl, setTakingControl] = useState(false);
+    const [data, setData] = useState(null);
+    const esPrioritaria = data?.prioritaria === true;
+
+
+    useEffect(() => {
+        if (confirmOpen && conversacion) {
+            setData(conversacion);
+        }
+    }, [confirmOpen, conversacion]);
 
     return (
         <Dialog
@@ -21,6 +31,7 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                 },
             }}
         >
+
             <DialogTitle
                 sx={{
                     fontWeight: 600,
@@ -30,18 +41,26 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                     color: "#f9fafb",
                 }}
             >
-                <TuneIcon fontSize="small" />
-                Control de conversación
+                {data?.prioritaria ? (
+                    <>
+                        <ReportProblemIcon
+                            fontSize="small"
+                        />
+                        Atención prioritaria!
+                    </>
+                ) : (
+                    <>
+                        <TuneIcon fontSize="small" />
+                        Controlar conversación
+                    </>
+                )}
             </DialogTitle>
 
-            <DialogContent sx={{ pt: 1 }}>
-                <Typography fontSize={14} sx={{ color: "#d1d5db" }}>
-                    La automatización se pausará y pasarás a control manual.
-                </Typography>
 
+            <DialogContent sx={{ pt: 1 }}>
                 <Box
                     sx={{
-                        mt: 2,
+                        mt: 0.5,
                         p: 1.5,
                         borderRadius: 2,
                         background: "linear-gradient(135deg, #1f2937, #111827)",
@@ -199,8 +218,22 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                             opacity: 0.95,
                         }}
                     >
-                        Tomarás el control y se pausará el bot.
+                        Tomarás el control y se pausará el bot
                     </Typography>
+
+                    <Typography
+                        sx={{
+                            mt: 0.3,
+                            fontSize: 13,
+                            textAlign: "center",
+                            color: "#93c5fd",
+                            fontWeight: 700,
+                            letterSpacing: 0.3,
+                        }}
+                    >
+                        {data?.phone || "Número desconocido"}
+                    </Typography>
+
                 </Box>
             </DialogContent>
 
@@ -230,17 +263,26 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                         textTransform: "none",
                         fontWeight: 600,
                         color: "#ffffff",
-                        background:
-                            "linear-gradient(135deg, #34d399, #10b981 45%, #059669 85%)",
+
+                        background: esPrioritaria
+                            ? "linear-gradient(135deg, #ef4444, #dc2626 45%, #991b1b 85%)"
+                            : "linear-gradient(135deg, #34d399, #10b981 45%, #059669 85%)",
+
                         backgroundSize: "200% 200%",
                         animation: "gradientShift 8s ease infinite",
-                        boxShadow: "0 4px 12px rgba(16,185,129,.35)",
+
+                        boxShadow: esPrioritaria
+                            ? "0 4px 14px rgba(239,68,68,.45)"
+                            : "0 4px 12px rgba(16,185,129,.35)",
 
                         "&:hover": {
-                            background:
-                                "linear-gradient(135deg,#2dd4bf,#10b981,#059669)",
-                            boxShadow:
-                                "0 0 6px rgba(16,185,129,.6), inset 0 0 6px rgba(255,255,255,0.25)",
+                            background: esPrioritaria
+                                ? "linear-gradient(135deg, #f87171, #ef4444, #b91c1c)"
+                                : "linear-gradient(135deg,#2dd4bf,#10b981,#059669)",
+
+                            boxShadow: esPrioritaria
+                                ? "0 0 8px rgba(239,68,68,.65), inset 0 0 6px rgba(255,255,255,0.25)"
+                                : "0 0 6px rgba(16,185,129,.6), inset 0 0 6px rgba(255,255,255,0.25)",
                         },
 
                         "&::before": {
@@ -248,8 +290,10 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                             position: "absolute",
                             inset: "-1px",
                             borderRadius: "inherit",
-                            background:
-                                "linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 12%, #6ee7b7 22%, rgba(255,255,255,0.9) 32%, transparent 44%)",
+                            background: esPrioritaria
+                                ? "linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 12%, #fecaca 22%, rgba(255,255,255,0.9) 32%, transparent 44%)"
+                                : "linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 12%, #6ee7b7 22%, rgba(255,255,255,0.9) 32%, transparent 44%)",
+
                             backgroundSize: "300% 300%",
                             animation: "shineBorderSweep 3.2s linear infinite",
                             pointerEvents: "none",
@@ -288,6 +332,7 @@ const DialogTomarControl = ({ confirmOpen, cancelTake, confirmTake }) => {
                 >
                     {takingControl ? "Tomando control..." : "Tomar control"}
                 </Button>
+
             </DialogActions>
         </Dialog>
     );
