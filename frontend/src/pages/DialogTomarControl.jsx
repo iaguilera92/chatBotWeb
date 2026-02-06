@@ -330,7 +330,7 @@ const DialogTomarControl = ({ confirmOpen, conversacion, cancelTake, confirmTake
                         },
                     }}
                 >
-                    {takingControl ? "Tomando control..." : "Tomar control"}
+                    {takingControl ? "Cargando..." : "Tomar control"}
                 </Button>
 
             </DialogActions>

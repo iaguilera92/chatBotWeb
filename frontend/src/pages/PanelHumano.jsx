@@ -12,7 +12,8 @@ export default function PanelHumano() {
     const isHumanMode = chat?.mode === "human";
     const [openNuevaConv, setOpenNuevaConv] = useState(false);
     const [showHint, setShowHint] = useState(true);
-    const [showHintMessage, setShowHintMessage] = useState(true);
+    const [showHintMessage, setShowHintMessage] = useState(false);
+
     const [speed, setSpeed] = useState(1);
     const [showClap, setShowClap] = useState(false);
     const prevAtendidosRef = useRef(0);
@@ -282,10 +283,21 @@ export default function PanelHumano() {
         }
     }, [showHint]);
 
-
+    //MENSAJE SELECCIONAR CONVERSACIÓN
     useEffect(() => {
-        const timer = setTimeout(() => setShowHintMessage(false), 5000); // desaparece a los 5s
-        return () => clearTimeout(timer);
+        // esperamos 3.5s antes de mostrar el mensaje
+        const showTimer = setTimeout(() => {
+            setShowHintMessage(true);
+
+            // desaparece 5s después de aparecer
+            const hideTimer = setTimeout(() => setShowHintMessage(false), 5000);
+
+            // limpiar hideTimer si el componente se desmonta
+            return () => clearTimeout(hideTimer);
+        }, 3500);
+
+        // limpiar showTimer si el componente se desmonta
+        return () => clearTimeout(showTimer);
     }, []);
 
 
@@ -1277,7 +1289,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 transition={{ duration: 0.3, ease: "easeOut" }}
                                 sx={{
                                     position: "absolute",
-                                    top: "40%",
+                                    top: "30%",
                                     left: 0,
                                     right: 0,
                                     display: "flex",
@@ -1405,7 +1417,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             transition={{ duration: 0.3, ease: "easeOut" }}
                             sx={{
                                 position: "absolute",
-                                bottom: 24,
+                                bottom: 55,
                                 left: 0,
                                 right: 0,
                                 display: "flex",
