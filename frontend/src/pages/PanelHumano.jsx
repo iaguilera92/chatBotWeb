@@ -1,15 +1,4 @@
-import { useEffect, useState, useRef } from "react";
-import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material";
-import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api";
-import { sendHumanMessage } from "../services/operator.api";
-import { motion, AnimatePresence } from "framer-motion";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import PersonIcon from "@mui/icons-material/Person";
-import InputBase from "@mui/material/InputBase";
-import SendIcon from "@mui/icons-material/Send";
-import IniciarConversacion from "./IniciarConversacion";
-import DialogTomarControl from "./DialogTomarControl";
+import { useEffect, useState, useRef } from "react"; import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material"; import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api"; import { sendHumanMessage } from "../services/operator.api"; import { motion, AnimatePresence } from "framer-motion"; import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; import SmartToyIcon from "@mui/icons-material/SmartToy"; import PersonIcon from "@mui/icons-material/Person"; import InputBase from "@mui/material/InputBase"; import SendIcon from "@mui/icons-material/Send"; import IniciarConversacion from "./IniciarConversacion"; import DialogTomarControl from "./DialogTomarControl"; import MoreVertIcon from "@mui/icons-material/MoreVert"; import Menu from "@mui/material/Menu"; import MenuItem from "@mui/material/MenuItem";
 
 export default function PanelHumano() {
     const isMobile = useMediaQuery("(max-width:768px)");
@@ -39,6 +28,8 @@ export default function PanelHumano() {
     const initializedRef = useRef(false);
     const [conversacionObjetivo, setConversacionObjetivo] = useState(null);
     const ocultarHeaderChat = isHumanMode && chat;
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [menuPhone, setMenuPhone] = useState(null);
     const iconos = [
         { src: "/instagram-logo.png", alt: "Instagram" },
         { src: "/facebook-logo.png", alt: "Facebook" },
@@ -47,8 +38,6 @@ export default function PanelHumano() {
     ];
 
     //CARGAR ATENDIDOS PRIMERA VEZ
-
-
     useEffect(() => {
         if (!conversations.length) return;
         if (initializedRef.current) return;
@@ -62,8 +51,6 @@ export default function PanelHumano() {
 
         initializedRef.current = true;
     }, [conversations]);
-
-
 
     //ATENDIDOS
     useEffect(() => {
@@ -80,7 +67,7 @@ export default function PanelHumano() {
         });
     }, [conversations]);
 
-
+    //TIEMPOS REDES
     useEffect(() => {
         const timer1 = setTimeout(() => setPhase(1), 1200 / speed);
         const timer2 = setTimeout(() => setPhase(2), 1350 / speed);
@@ -120,6 +107,28 @@ export default function PanelHumano() {
 
         return () => clearTimeout(timer);
     }, [conversacionesAtendidas]);
+
+    const handleMenuClick = (event, phone) => {
+        event.stopPropagation();
+        setMenuAnchorEl(event.currentTarget);
+        setMenuPhone(phone);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+        setMenuPhone(null);
+    };
+
+    const handleEliminar = (phone) => {
+        handleMenuClose();
+        deleteConversation(phone);
+    };
+
+    const handleVer = (phone) => {
+        handleMenuClose();
+        viewConversation(phone);
+    };
+
 
 
     const [shakeEnEspera, setShakeEnEspera] = useState(false);
@@ -794,16 +803,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                     </Box>
 
 
-                    <List
-                        sx={{
-                            p: 1,
-                            overflowY: "auto",
-                            flex: 1,
-
-                            backdropFilter: "blur(4px)",
-                        }}
-                    >
-
+                    <List sx={{ p: 1, overflowY: "auto", flex: 1, backdropFilter: "blur(4px)" }}>
                         {conversationsSorted.map((c) => {
                             const isHuman = c.mode === "human";
                             const selected = c.phone === activePhone;
@@ -813,26 +813,32 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 ? Math.floor((Date.now() - new Date(c.lastMessageAt).getTime()) / 60000)
                                 : null;
 
+                            const open = menuPhone === c.phone && Boolean(menuAnchorEl);
+
+                            // Color del borde izquierdo
+                            let borderColor = "#3b82f6"; // azul bot
+                            if (needsAttention) borderColor = "#dc2626"; // rojo atención
+                            else if (isHuman) borderColor = "#10b981"; // verde humano
+
                             return (
                                 <ListItemButton
                                     key={c.phone}
                                     onClick={() => selectConversation(c)}
-
                                     sx={{
                                         mb: 0.6,
                                         borderRadius: 2,
                                         border: "1px solid #e2e8f0",
                                         boxShadow: selected ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
                                         backgroundColor: selected
-                                            ? "#dbeafe" // azul pastel
+                                            ? "#dbeafe"
                                             : needsAttention
-                                                ? "#fee2e2" // rojo pastel
-                                                : "#f0fdf4", // verde pastel muy suave para conversaciones normales
+                                                ? "#fee2e2"
+                                                : "#f0fdf4",
                                         "&:hover": {
                                             backgroundColor: needsAttention ? "#fecaca" : "#e0f2fe",
                                             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                                         },
-
+                                        position: "relative",
                                         "&::before": {
                                             content: '""',
                                             position: "absolute",
@@ -841,14 +847,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                             bottom: 8,
                                             width: 4,
                                             borderRadius: 2,
-                                            backgroundColor: needsAttention
-                                                ? "#dc2626"
-                                                : isHuman
-                                                    ? "#10b981"
-                                                    : "#3b82f6",
-                                            opacity: needsAttention ? 1 : selected ? 1 : 0.6,
+                                            backgroundColor: borderColor,
+                                            opacity: selected || needsAttention ? 1 : 0.6,
                                         },
-
                                     }}
                                 >
                                     {/* Avatar */}
@@ -894,7 +895,6 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                             )}
                                         </Box>
 
-
                                         <Box sx={{ mt: 0.4, display: "flex", gap: 0.6, flexWrap: "wrap" }}>
                                             <Box
                                                 sx={{
@@ -911,8 +911,6 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                 {isHuman ? "ATENDIDO" : "CONTROL BOT"}
                                             </Box>
 
-
-
                                             {minutesAgo !== null && (
                                                 <Typography fontSize={11} color="text.secondary" noWrap sx={{ opacity: 0.75 }}>
                                                     hace {formatTimeAgo(minutesAgo)}
@@ -921,10 +919,35 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                         </Box>
                                     </Box>
 
+                                    {/* Botón de tres puntos */}
+                                    <Box>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => handleMenuClick(e, c.phone)}
+                                            sx={{ ml: 1 }}
+                                        >
+                                            <MoreVertIcon fontSize="small" />
+                                        </IconButton>
+
+                                        <Menu
+                                            anchorEl={menuAnchorEl}
+                                            open={open}
+                                            onClose={handleMenuClose}
+                                            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                                            transformOrigin={{ vertical: "top", horizontal: "right" }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <MenuItem onClick={() => handleVer(c.phone)}>Ver</MenuItem>
+                                            <MenuItem onClick={() => handleEliminar(c.phone)}>Eliminar</MenuItem>
+                                        </Menu>
+                                    </Box>
                                 </ListItemButton>
                             );
                         })}
                     </List>
+
+
+
                 </Paper>
 
                 {/* CHAT */}
@@ -1371,12 +1394,6 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                         </>
                     )}
                 </AnimatePresence>
-
-
-
-
-
-
                 {/* 🔹 Mensaje inferior independiente */}
                 <AnimatePresence>
                     {showHintMessage && !chat && (
