@@ -750,7 +750,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     borderColor: "#bfdbfe",
                                     background: "linear-gradient(135deg,#eff6ff,#f8fafc)",
                                     boxShadow: "0 2px 6px rgba(30,58,138,.10)",
-
+                                    "@media (max-width: 768px)": {
+                                        boxShadow: "none", // 🔹 elimina sombra en mobile
+                                    },
                                     transition: "all .35s ease",
 
                                     "&:hover": {
@@ -797,6 +799,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                         borderColor: "#bfdbfe",
                                         background: "linear-gradient(135deg,#eff6ff,#f8fafc)",
                                         boxShadow: "0 2px 6px rgba(30,58,138,.10)",
+                                        "@media (max-width: 768px)": {
+                                            boxShadow: "none", // 🔹 elimina sombra en mobile
+                                        },
                                         transition: "all .35s ease",
                                         "&:hover": {
                                             background: "linear-gradient(135deg,#dbeafe,#eff6ff)",
@@ -987,8 +992,6 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                         })}
                     </List>
 
-
-
                 </Paper>
 
                 {/* CHAT */}
@@ -1162,91 +1165,81 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             })}
                         </Box>
 
-                        {/* INPUT */}
                         <Box
                             sx={{
+                                position: "fixed",                   // FIXED en vez de sticky
+                                bottom: "env(safe-area-inset-bottom, 0px)", // safe area para iPhone
+                                left: 0,
+                                right: 0,
                                 width: "100%",
                                 px: 1.5,
                                 py: 1.2,
                                 background: "linear-gradient(180deg,#ffffff,#f8fafc)",
                                 borderTop: "1px solid #e5e7eb",
-                                position: "sticky",
-                                bottom: 0,
-                                zIndex: 2,
+                                zIndex: 1000,                        // arriba de todo
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
                             }}
                         >
+                            {/* TEXT INPUT */}
                             <Box
                                 sx={{
+                                    flex: 1,
+                                    borderRadius: 999,
+                                    border: "1px solid rgba(160,220,255,.45)",
+                                    backgroundColor: "rgba(240,250,255,.9)",
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 1,
+                                    px: 2,
+                                    transition: "all .25s ease",
+                                    "&:focus-within": {
+                                        boxShadow: "0 0 12px rgba(160,220,255,.7)",
+                                        backgroundColor: "#ffffff",
+                                    },
                                 }}
                             >
-                                {/* TEXT INPUT */}
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        borderRadius: 999,
-                                        border: "1px solid rgba(160,220,255,.45)",
-                                        backgroundColor: "rgba(240,250,255,.9)",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        px: 2,
-                                        transition: "all .25s ease",
-                                        "&:focus-within": {
-                                            boxShadow: "0 0 12px rgba(160,220,255,.7)",
-                                            backgroundColor: "#ffffff",
-                                        },
+                                <InputBase
+                                    multiline
+                                    maxRows={4}
+                                    placeholder="Escribe un mensaje…"
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            send();
+                                        }
                                     }}
-                                >
-                                    <InputBase
-                                        multiline
-                                        maxRows={4}
-                                        placeholder="Escribe un mensaje…"
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey) {
-                                                e.preventDefault();
-                                                send();
-                                            }
-                                        }}
-                                        sx={{
-                                            width: "100%",
-                                            fontSize: 16, // 🔹 evita zoom en mobile
-                                            lineHeight: 1.4,
-                                            color: "#0f3c4c",
-                                        }}
-                                    />
-                                </Box>
-
-                                {/* SEND BUTTON */}
-                                <IconButton
-                                    disabled={sending || !message.trim()}
-                                    onClick={send}
                                     sx={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: "50%",
-                                        flexShrink: 0,
-                                        bgcolor: message.trim()
-                                            ? "rgba(160,220,255,.9)"
-                                            : "rgba(200,220,235,.6)",
-                                        color: message.trim() ? "#0f3c4c" : "#94a3b8",
-                                        boxShadow: message.trim()
-                                            ? "0 0 12px rgba(160,220,255,.9)"
-                                            : "none",
-                                        transition: "all .25s ease",
-                                        "&:hover": {
-                                            bgcolor: message.trim()
-                                                ? "rgba(180,235,255,1)"
-                                                : "rgba(200,220,235,.6)",
-                                        },
+                                        width: "100%",
+                                        fontSize: 16,
+                                        lineHeight: 1.4,
+                                        color: "#0f3c4c",
                                     }}
-                                >
-                                    <SendIcon fontSize="small" />
-                                </IconButton>
+                                />
                             </Box>
+
+                            {/* SEND BUTTON */}
+                            <IconButton
+                                disabled={sending || !message.trim()}
+                                onClick={send}
+                                sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: "50%",
+                                    flexShrink: 0,
+                                    bgcolor: message.trim() ? "rgba(160,220,255,.9)" : "rgba(200,220,235,.6)",
+                                    color: message.trim() ? "#0f3c4c" : "#94a3b8",
+                                    boxShadow: message.trim() ? "0 0 12px rgba(160,220,255,.9)" : "none",
+                                    transition: "all .25s ease",
+                                    "&:hover": {
+                                        bgcolor: message.trim() ? "rgba(180,235,255,1)" : "rgba(200,220,235,.6)",
+                                    },
+                                }}
+                            >
+                                <SendIcon fontSize="small" />
+                            </IconButton>
                         </Box>
 
                     </Box>
