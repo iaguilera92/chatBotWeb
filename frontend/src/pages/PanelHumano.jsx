@@ -1,10 +1,14 @@
-import { useEffect, useState, useRef } from "react"; import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material"; import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api"; import { sendHumanMessage } from "../services/operator.api"; import { motion, AnimatePresence } from "framer-motion"; import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; import SmartToyIcon from "@mui/icons-material/SmartToy"; import PersonIcon from "@mui/icons-material/Person"; import InputBase from "@mui/material/InputBase"; import SendIcon from "@mui/icons-material/Send"; import IniciarConversacion from "./IniciarConversacion"; import DialogTomarControl from "./DialogTomarControl"; import MoreVertIcon from "@mui/icons-material/MoreVert"; import Menu from "@mui/material/Menu"; import MenuItem from "@mui/material/MenuItem";
+import { useEffect, useState, useRef, useLayoutEffect } from "react"; import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material"; import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api"; import { sendHumanMessage } from "../services/operator.api"; import { motion, AnimatePresence } from "framer-motion"; import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; import SmartToyIcon from "@mui/icons-material/SmartToy"; import PersonIcon from "@mui/icons-material/Person"; import InputBase from "@mui/material/InputBase"; import SendIcon from "@mui/icons-material/Send"; import IniciarConversacion from "./IniciarConversacion"; import DialogTomarControl from "./DialogTomarControl"; import MoreVertIcon from "@mui/icons-material/MoreVert"; import Menu from "@mui/material/Menu"; import MenuItem from "@mui/material/MenuItem";
 import AutorenewIcon from "@mui/icons-material/Autorenew"
 import { resetAllConversations } from "../services/reset-conversations.api";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { Fab } from "@mui/material";
 
 export default function PanelHumano() {
     const isMobile = useMediaQuery("(max-width:768px)");
-    const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef < HTMLDivElement > (null);
+    const [showScrollDown, setShowScrollDown] = useState(false);
+
     const [conversations, setConversations] = useState([]);
     const [activePhone, setActivePhone] = useState(null);
     const [chat, setChat] = useState(null);
@@ -33,6 +37,7 @@ export default function PanelHumano() {
     const ocultarHeaderChat = isHumanMode && chat;
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const [menuPhone, setMenuPhone] = useState(null);
+
     const iconos = [
         { src: "/instagram-logo.png", alt: "Instagram" },
         { src: "/facebook-logo.png", alt: "Facebook" },
@@ -166,35 +171,40 @@ export default function PanelHumano() {
 
     //ESCUCHAR CHAT ACTIVO!
     useEffect(() => {
-        if (!activePhone) return;
+        const container = messagesContainerRef.current;
+        if (!container) return;
 
-        const refreshChat = async () => {
-            const data = await getConversation(activePhone);
-            setChat(data);
+        const handleScroll = () => {
+            const bottomReached =
+                container.scrollHeight - container.scrollTop - container.clientHeight <= 10;
+            setShowScrollDown(!bottomReached);
         };
 
-        refreshChat(); // inmediato
+        container.addEventListener("scroll", handleScroll);
 
-        const t = setInterval(refreshChat, 3000); // polling ligero
-        return () => clearInterval(t);
-    }, [activePhone]);
+        // scroll inicial
+        scrollToBottom();
 
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        return () => container.removeEventListener("scroll", handleScroll);
     }, [chat?.messages]);
 
+    //SCROLL CHAT 
+    useEffect(() => {
+        if (!activePhone || !chat) return; // solo si hay chat activo
+
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.scrollTop = container.scrollHeight; // baja al último mensaje
+        }
+    }, [chat?.messages, activePhone]);
+
+    //SELECCIONAR CONVERSACIÓN
     function selectConversation(conversation) {
         setConversacionObjetivo({
             ...conversation,
             prioritaria: false, // modo normal
         });
         setConfirmOpen(true);
-    }
-
-    function cancelTake() {
-        setSelectedPhone(null);
-        setConfirmOpen(false);
     }
 
     async function release() {
@@ -396,6 +406,7 @@ export default function PanelHumano() {
             </Typography>
         );
     }
+
 
     function IndicadorEnEspera({ value, onClick }) {
         return (
@@ -1121,54 +1132,53 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
 
                         {/* MENSAJES */}
                         <Box
+                            ref={messagesContainerRef}
                             sx={{
-                                width: "100%",          // 👈 ocupa todo el ancho
                                 flex: 1,
-                                px: isMobile ? 1.5 : 3,
-                                py: 2,
                                 overflowY: "auto",
+                                display: "flex",
+                                flexDirection: "column",
+                                px: 2,
+                                py: 1,
+                                paddingBottom: "60px", // espacio para el input
                             }}
                         >
-                            {chat.messages.map((m, i) => {
-                                const isUser = m.from === "user";
-                                const isBot = m.from === "bot";
-                                const isHuman = m.from === "human";
-
-                                return (
+                            {chat.messages.map((m, i) => (
+                                <Box
+                                    key={i}
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: m.from === "user" ? "flex-start" : "flex-end",
+                                        mb: 1.5,
+                                    }}
+                                >
                                     <Box
-                                        key={i}
                                         sx={{
-                                            display: "flex",
-                                            justifyContent: isUser ? "flex-start" : "flex-end",
-                                            mb: 1.5,
-                                        }}
-                                    >
-                                        <Box
-                                            sx={{
-                                                maxWidth: isMobile ? "90%" : "70%",
-                                                px: 2,
-                                                py: 1.2,
-                                                borderRadius: 3,
-                                                fontSize: 14,
-                                                background: isBot
+                                            maxWidth: isMobile ? "90%" : "70%",
+                                            px: 2,
+                                            py: 1.2,
+                                            borderRadius: 3,
+                                            fontSize: 14,
+                                            background:
+                                                m.from === "bot"
                                                     ? "#eff6ff"
-                                                    : isHuman
+                                                    : m.from === "human"
                                                         ? "#dcfce7"
                                                         : "#ffffff",
-                                                border: "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            <Typography>{m.text}</Typography>
-                                        </Box>
+                                            border: "1px solid #e5e7eb",
+                                        }}
+                                    >
+                                        <Typography>{m.text}</Typography>
                                     </Box>
-                                );
-                            })}
+                                </Box>
+                            ))}
                         </Box>
 
+                        {/* INPUT FIJO */}
                         <Box
                             sx={{
-                                position: "fixed",                   // FIXED en vez de sticky
-                                bottom: "env(safe-area-inset-bottom, 0px)", // safe area para iPhone
+                                position: "fixed",
+                                bottom: "env(safe-area-inset-bottom, 0px)",
                                 left: 0,
                                 right: 0,
                                 width: "100%",
@@ -1176,13 +1186,13 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 py: 1.2,
                                 background: "linear-gradient(180deg,#ffffff,#f8fafc)",
                                 borderTop: "1px solid #e5e7eb",
-                                zIndex: 1000,                        // arriba de todo
+                                zIndex: 1000,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 1,
                             }}
                         >
-                            {/* TEXT INPUT */}
+                            {/* INPUT */}
                             <Box
                                 sx={{
                                     flex: 1,
@@ -1211,16 +1221,11 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                             send();
                                         }
                                     }}
-                                    sx={{
-                                        width: "100%",
-                                        fontSize: 16,
-                                        lineHeight: 1.4,
-                                        color: "#0f3c4c",
-                                    }}
+                                    sx={{ width: "100%", fontSize: 16, lineHeight: 1.4, color: "#0f3c4c" }}
                                 />
                             </Box>
 
-                            {/* SEND BUTTON */}
+                            {/* BOTÓN ENVIAR */}
                             <IconButton
                                 disabled={sending || !message.trim()}
                                 onClick={send}
@@ -1233,15 +1238,27 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     color: message.trim() ? "#0f3c4c" : "#94a3b8",
                                     boxShadow: message.trim() ? "0 0 12px rgba(160,220,255,.9)" : "none",
                                     transition: "all .25s ease",
-                                    "&:hover": {
-                                        bgcolor: message.trim() ? "rgba(180,235,255,1)" : "rgba(200,220,235,.6)",
-                                    },
+                                    "&:hover": { bgcolor: message.trim() ? "rgba(180,235,255,1)" : "rgba(200,220,235,.6)" },
                                 }}
                             >
                                 <SendIcon fontSize="small" />
                             </IconButton>
                         </Box>
 
+                        {/* FAB SCROLL ABAJO */}
+                        {showScrollDown && (
+                            <Fab
+                                size="small"
+                                color="primary"
+                                onClick={() => {
+                                    const container = messagesContainerRef.current;
+                                    if (container) container.scrollTop = container.scrollHeight;
+                                }}
+                                sx={{ position: "fixed", bottom: 80, right: 16 }}
+                            >
+                                <KeyboardArrowDownIcon />
+                            </Fab>
+                        )}
                     </Box>
                 )}
 
