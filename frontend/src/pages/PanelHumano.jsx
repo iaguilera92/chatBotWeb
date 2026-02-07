@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from "react"; import { IconButton, Box, Paper, Typography, List, ListItemButton, Button, Dialog, useMediaQuery, } from "@mui/material"; import { getConversations, getConversation, setConversationMode, } from "../services/conversations.api"; import { sendHumanMessage } from "../services/operator.api"; import { motion, AnimatePresence } from "framer-motion"; import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; import SmartToyIcon from "@mui/icons-material/SmartToy"; import PersonIcon from "@mui/icons-material/Person"; import InputBase from "@mui/material/InputBase"; import SendIcon from "@mui/icons-material/Send"; import IniciarConversacion from "./IniciarConversacion"; import DialogTomarControl from "./DialogTomarControl"; import MoreVertIcon from "@mui/icons-material/MoreVert"; import Menu from "@mui/material/Menu"; import MenuItem from "@mui/material/MenuItem";
+import AutorenewIcon from "@mui/icons-material/Autorenew"
+import { resetAllConversations } from "../services/reset-conversations.api";
 
 export default function PanelHumano() {
     const isMobile = useMediaQuery("(max-width:768px)");
@@ -130,7 +132,16 @@ export default function PanelHumano() {
         viewConversation(phone);
     };
 
-
+    //RESET CONVERSACIONES
+    const handleResetConversacionesClick = async () => {
+        try {
+            await resetAllConversations();
+            alert("✅ Todas las conversaciones ahora están en CONTROL BOT");
+        } catch (err) {
+            console.error(err);
+            alert("❌ Error reseteando conversaciones");
+        }
+    };
 
     const [shakeEnEspera, setShakeEnEspera] = useState(false);
     const conversationsSorted = [...conversations].sort((a, b) => {
@@ -717,41 +728,26 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                         </Box>
 
 
-                        {/* DERECHA */}
-                        <motion.div
-                            animate={{
-                                width: expandedNewChat ? 170 : 40,
-                            }}
-                            transition={{
-                                duration: 0.45,
-                                ease: "easeInOut",
-                            }}
-                            style={{ display: "inline-flex" }}
-                        >
+
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {/* IZQUIERDA: Resetear a CONTROL BOT */}
+
                             <Button
                                 size="small"
                                 variant="outlined"
-                                onClick={() => setOpenNuevaConv(true)}
+                                onClick={handleResetConversacionesClick}
                                 sx={{
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                    borderRadius: 999,
-
-                                    width: "100%",
+                                    width: 40,
                                     minWidth: 40,
-                                    px: expandedNewChat ? 2.2 : 0,
-
+                                    height: 25, // 🔹 Igual que el botón "+"
+                                    borderRadius: 999,
+                                    px: 0,
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
 
-                                    overflow: "hidden",
-                                    whiteSpace: "nowrap",
-
-                                    /* 🎯 AZUL REAL */
-                                    color: "#1e3a8a",          // blue-800
-                                    borderColor: "#bfdbfe",    // blue-200
+                                    color: "#1e3a8a",
+                                    borderColor: "#bfdbfe",
                                     background: "linear-gradient(135deg,#eff6ff,#f8fafc)",
                                     boxShadow: "0 2px 6px rgba(30,58,138,.10)",
 
@@ -770,48 +766,81 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     },
                                 }}
                             >
+                                <AutorenewIcon fontSize="small" />
+                            </Button>
 
-                                <Box
+                            {/* DERECHA: + Iniciar conversación */}
+                            <motion.div
+                                animate={{ width: expandedNewChat ? 170 : 40 }}
+                                transition={{ duration: 0.45, ease: "easeInOut" }}
+                                style={{ display: "inline-flex" }}
+                            >
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setOpenNuevaConv(true)}
                                     sx={{
+                                        textTransform: "none",
+                                        fontWeight: 700,
+                                        fontSize: 13,
+                                        height: 25,
+                                        borderRadius: 999,
+                                        width: "100%",
+                                        minWidth: 40,
+                                        px: expandedNewChat ? 2.2 : 0,
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        gap: expandedNewChat ? 0.6 : 0,
-                                        transition: "gap .35s ease",
+                                        overflow: "hidden",
+                                        whiteSpace: "nowrap",
+                                        color: "#1e3a8a",
+                                        borderColor: "#bfdbfe",
+                                        background: "linear-gradient(135deg,#eff6ff,#f8fafc)",
+                                        boxShadow: "0 2px 6px rgba(30,58,138,.10)",
+                                        transition: "all .35s ease",
+                                        "&:hover": {
+                                            background: "linear-gradient(135deg,#dbeafe,#eff6ff)",
+                                            borderColor: "#60a5fa",
+                                            boxShadow: "0 0 0 3px rgba(59,130,246,.22)",
+                                            transform: "translateY(-1px)",
+                                        },
                                     }}
                                 >
-                                    {/* + */}
-                                    <motion.span
-                                        animate={{
-                                            scale: expandedNewChat ? 1 : 1.15,
-                                        }}
-                                        transition={{ duration: 0.3 }}
-                                        style={{
-                                            fontSize: 18,
-                                            fontWeight: 900,
-                                            lineHeight: 1,
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: expandedNewChat ? 0.6 : 0,
+                                            transition: "gap .35s ease",
                                         }}
                                     >
-                                        +
-                                    </motion.span>
+                                        <motion.span
+                                            animate={{ scale: expandedNewChat ? 1 : 1.15 }}
+                                            transition={{ duration: 0.3 }}
+                                            style={{ fontSize: 18, fontWeight: 900, lineHeight: 1 }}
+                                        >
+                                            +
+                                        </motion.span>
+                                        <AnimatePresence>
+                                            {expandedNewChat && (
+                                                <motion.span
+                                                    initial={{ opacity: 0, x: -8 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: -10 }}
+                                                    transition={{ duration: 0.25 }}
+                                                    style={{ display: "inline-block" }}
+                                                >
+                                                    Iniciar conversación
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </Box>
+                                </Button>
+                            </motion.div>
+                        </Box>
 
-                                    {/* Texto */}
-                                    <AnimatePresence>
-                                        {expandedNewChat && (
-                                            <motion.span
-                                                initial={{ opacity: 0, x: -8 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -10 }}
-                                                transition={{ duration: 0.25 }}
-                                                style={{ display: "inline-block" }}
-                                            >
-                                                Iniciar conversación
-                                            </motion.span>
-                                        )}
-                                    </AnimatePresence>
-                                </Box>
-                            </Button>
-                        </motion.div>
+
                     </Box>
 
 

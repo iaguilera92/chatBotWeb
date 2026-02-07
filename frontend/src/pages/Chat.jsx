@@ -285,7 +285,8 @@ export default function Chat() {
                 maxWidth="xs"
                 fullWidth
                 onClose={(e, reason) => {
-                    if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+                    // solo prevenimos cierre con Escape
+                    if (reason === "escapeKeyDown") return;
                     setWelcomeOpen(false);
                 }}
                 disableEscapeKeyDown

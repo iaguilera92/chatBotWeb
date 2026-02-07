@@ -6,6 +6,7 @@ import { chatRoutes } from "./routes/chat";
 import { whatsappMetaWebhook } from "./webhook-meta";
 import { operatorRoutes } from "./routes/operator";
 import { conversationRoutes } from "./routes/conversations";
+import { resetConversationsRoutes } from "./routes/reset-conversations";
 
 async function startServer() {
     const app = Fastify({ logger: true });
@@ -18,6 +19,7 @@ async function startServer() {
     await chatRoutes(app);           // POST /api/chat
     await operatorRoutes(app);       // /api/operator/*
     await conversationRoutes(app);   // /api/conversations/*
+    await resetConversationsRoutes(app);
 
     // ❤️ Healthcheck
     app.get("/health", async () => ({ status: "ok" }));

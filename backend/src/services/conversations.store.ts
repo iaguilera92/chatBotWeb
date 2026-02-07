@@ -49,6 +49,11 @@ export async function saveMessage(
 ) {
     const convo = await getConversation(phone);
 
+    // Solo marcar necesita atención si está en modo bot
+    if (from === "user" && convo.mode === "bot") {
+        convo.needsHuman = true;
+    }
+
     convo.messages.push({
         from,
         text,
@@ -57,12 +62,10 @@ export async function saveMessage(
 
     convo.lastMessageAt = Date.now();
 
-    if (from === "user" && convo.mode !== "human") {
-        convo.needsHuman = true;
-    }
-
     await redisSafe.set(key(phone), JSON.stringify(convo));
 }
+
+
 
 /**
  * Cambia el modo de la conversación (bot/human)
