@@ -1,20 +1,6 @@
 import { redisSafe } from "../lib/redis-safe";
-
-export type ConversationMode = "bot" | "human";
-
-export type ChatMessage = {
-    from: "user" | "bot" | "human";
-    text: string;
-    ts: number;
-};
-
-export type Conversation = {
-    phone: string;
-    messages: ChatMessage[];
-    lastMessageAt: number;
-    mode: ConversationMode;
-    needsHuman: boolean;
-};
+import { Conversation, ChatMessage, ConversationMode } from "../models/Conversations";
+import { normalizePhone } from "../services/phone.util";
 
 const key = (phone: string) => `convo:${phone}`;
 
@@ -66,7 +52,6 @@ export async function saveMessage(
 }
 
 
-
 /**
  * Cambia el modo de la conversación (bot/human)
  */
@@ -74,7 +59,12 @@ export async function setMode(phone: string, mode: ConversationMode) {
     const convo = await getConversation(phone);
 
     convo.mode = mode;
-    if (mode === "human") convo.needsHuman = false;
+    if (mode === "human") {
+        convo.needsHuman = false;
+        convo.status = "ATENDIDA";
+    } else {
+        convo.status = convo.finished ? "EN ESPERA" : "CONTROL BOT";
+    }
 
     await redisSafe.set(key(phone), JSON.stringify(convo));
 }
@@ -86,13 +76,43 @@ export async function listConversations(): Promise<Conversation[]> {
     const keys = await redisSafe.keys("convo:*");
     if (!keys.length) return [];
 
-    // Tipamos values como (string | null)[]
     const values: (string | null)[] = await redisSafe.mget(keys);
 
-    const conversations: Conversation[] = values
-        .filter((v): v is string => v !== null) // Type guard: descarta null
-        .map((v) => JSON.parse(v) as Conversation) // Parse seguro
-        .sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    // Parsear y normalizar
+    const rawConversations: Conversation[] = values
+        .filter((v): v is string => v !== null)
+        .map((v) => JSON.parse(v) as Conversation)
+        .map((c) => ({
+            ...c,
+            phone: normalizePhone(c.phone),
+        }));
+
+    // Eliminar duplicados dejando solo el último mensaje
+    const convoMap = new Map<string, Conversation>();
+    for (const convo of rawConversations) {
+        const existing = convoMap.get(convo.phone);
+        if (!existing || convo.lastMessageAt > existing.lastMessageAt) {
+            convoMap.set(convo.phone, convo);
+        }
+    }
+
+    // Convertir a arreglo y ordenar por último mensaje
+    const conversations = Array.from(convoMap.values()).sort(
+        (a, b) => b.lastMessageAt - a.lastMessageAt
+    );
 
     return conversations;
+}
+
+export async function finishConversation(phone: string) {
+    const convo = await getConversation(phone);
+
+    convo.finished = true;
+    convo.mode = "bot";
+    convo.needsHuman = false;
+
+    convo.status = "EN ESPERA"; // 🔥 aquí definimos el status
+
+    await redisSafe.set(key(phone), JSON.stringify(convo));
+    return convo;
 }

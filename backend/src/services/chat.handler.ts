@@ -1,6 +1,10 @@
 import { sendToAI } from "./groq.service";
 import { sendLeadEmail } from "./email.service";
 import { botStatus } from "../state/botStatus";
+import { redisSafe } from "../lib/redis";
+import { finishConversation } from "../services/conversations.store";
+
+const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 
 // Tipos reutilizados
 export type UiMessage = {
@@ -352,50 +356,37 @@ Suscripción mensual: $9.990 CLP
         /* 📧 Detectar correo */
         /* 📧 ESPERA EMAIL + NEGOCIO */
         if (phase === "waiting_lead") {
-
-            // ✅ OPCIONAL 1: solo email (sin negocio)
-            const onlyEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
-            if (onlyEmail) {
-                return `Perfecto 👍 ahora indícame el *nombre del negocio o emprendimiento*`;
-            }
-
-            // 🧾 Email + negocio en un solo mensaje
-            const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
-
-            if (!match) {
-                botStatus.leadErrors = (botStatus.leadErrors ?? 0) + 1;
-
-                if (botStatus.leadErrors >= 2) {
-                    botStatus.leadErrors = 0; // reset
-                    botStatus.phase = "waiting_offer_intro";
-
-                    return `😅 Veo que está siendo complicado.
-
-¿Quieres que volvamos a ver las ofertas o prefieres intentarlo más tarde?`;
+            try {
+                // ✅ OPCIONAL 1: solo email (sin negocio)
+                const onlyEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+                if (onlyEmail) {
+                    return `Perfecto 👍 ahora indícame el *nombre del negocio o emprendimiento*`;
                 }
 
-                return `⚠️ Formato incorrecto.
-Por favor envíame:
-1) Tu correo electrónico
-2) Nombre del negocio
+                // 🧾 Email + negocio en un solo mensaje
+                const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
+                if (!match) {
+                    botStatus.leadErrors = (botStatus.leadErrors ?? 0) + 1;
 
-Ejemplo:
-correo@dominio.cl Mi Negocio`;
-            }
+                    if (botStatus.leadErrors >= 2) {
+                        botStatus.leadErrors = 0;
+                        botStatus.phase = "waiting_offer_intro";
 
+                        return `😅 Veo que está siendo complicado.\n\n¿Quieres que volvamos a ver las ofertas o prefieres intentarlo más tarde?`;
+                    }
 
-            const email = match[1];
-            const business = match[2];
+                    return `⚠️ Formato incorrecto.\nPor favor envíame:\n1) Tu correo electrónico\n2) Nombre del negocio\n\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
+                }
 
-            const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                const email = match[1];
+                const business = match[2];
 
-            if (!isValidEmail) {
-                return `⚠️ El correo ingresado no es válido.
-Ejemplo:
-correo@dominio.cl Mi Negocio`;
-            }
+                const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                if (!isValidEmail) {
+                    return `⚠️ El correo ingresado no es válido.\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
+                }
 
-            try {
+                // 📨 Enviar correo
                 await sendLeadEmail({
                     email,
                     business,
@@ -405,16 +396,54 @@ correo@dominio.cl Mi Negocio`;
                 botStatus.leadEmailSent = true;
                 botStatus.leadEmail = email;
                 botStatus.leadRegisteredAt = new Date();
-                botStatus.phase = "lead_sent"; // 👈 opcional 2 (ya lo hiciste)
+                botStatus.phase = "lead_sent";
                 botStatus.leadErrors = 0;
+
+                // 🧠 Generar teléfono simulado
+                const phone = SIMULATE_PHONE
+                    ? "+569" + Math.floor(10000000 + Math.random() * 90000000)
+                    : null;
+
+                if (phone) {
+                    const redisKey = `chat:${phone}`;
+
+                    // Agregar mensaje del bot al historial
+                    const botReply = "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
+                    botStatus.messages.push({
+                        from: "bot",
+                        text: botReply,
+                        timestamp: new Date(),
+                    });
+
+                    // Guardar en Redis todo el estado relevante
+                    const chatData = {
+                        phone,
+                        phase: botStatus.phase,
+                        leadEmail: botStatus.leadEmail,
+                        leadOffer: botStatus.leadOffer,
+                        leadRegisteredAt: botStatus.leadRegisteredAt,
+                        messages: botStatus.messages,
+                        updatedAt: new Date(),
+                    };
+
+                    await redisSafe.set(redisKey, JSON.stringify(chatData));
+
+                    // ✅ NUEVO: finalizar la conversación en el store
+                    await finishConversation(phone);
+
+                    console.log("💾 Conversación finalizada en Redis:", phone, chatData);
+
+                    return botReply;
+                }
 
                 return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
 
             } catch (e) {
-                console.error("📧 Error al enviar correo", e);
+                console.error("📧 Error al enviar correo o guardar conversación", e);
                 return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
             }
         }
+
 
         /* 🚫 Bot deshabilitado manualmente */
         if (!botStatus.enabled) {

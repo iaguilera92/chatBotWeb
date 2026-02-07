@@ -149,17 +149,11 @@ export default function PanelHumano() {
     };
 
     const [shakeEnEspera, setShakeEnEspera] = useState(false);
-    const conversationsSorted = [...conversations].sort((a, b) => {
-        // Prioridad: needsHuman primero
-        if (a.needsHuman && !b.needsHuman) return -1;
-        if (!a.needsHuman && b.needsHuman) return 1;
-
-        // Luego por fecha (más reciente arriba)
-        const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-        const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-        return db - da;
+    const conversationsSorted = conversations.sort((a, b) => {
+        if (a.status === "EN ESPERA" && b.status !== "EN ESPERA") return -1;
+        if (b.status === "EN ESPERA" && a.status !== "EN ESPERA") return 1;
+        return b.lastMessageAt - a.lastMessageAt; // luego por último mensaje
     });
-
     const shakeTimerRef = useRef(null);
 
     useEffect(() => {
@@ -866,16 +860,39 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             const selected = c.phone === activePhone;
                             const needsAttention = c.needsHuman && !isHuman;
 
-                            const minutesAgo = c.lastMessageAt
-                                ? Math.floor((Date.now() - new Date(c.lastMessageAt).getTime()) / 60000)
-                                : null;
+                            const lastMessageTimestamp =
+                                c.lastMessageAt ?? (c.messages?.length ? c.messages[c.messages.length - 1].ts : Date.now());
+
+                            const minutesAgo = lastMessageTimestamp
+                                ? Math.floor((Date.now() - new Date(lastMessageTimestamp).getTime()) / 60000)
+                                : 0; // <-- si no hay fecha, ponemos 0 minutos
 
                             const open = menuPhone === c.phone && Boolean(menuAnchorEl);
 
                             // Color del borde izquierdo
-                            let borderColor = "#3b82f6"; // azul bot
-                            if (needsAttention) borderColor = "#dc2626"; // rojo atención
-                            else if (isHuman) borderColor = "#10b981"; // verde humano
+                            let borderColor = "#3b82f6"; // azul pastel → CONTROL BOT
+                            let bgColor = "#eff6ff";      // azul pastel de fondo
+
+                            if (c.status === "EN ESPERA") {
+                                borderColor = "#fca5a5"; // rojo pastel
+                                bgColor = "#fee2e2";     // rojo pastel fondo
+                            } else if (c.status === "ATENDIDA") {
+                                borderColor = "#10b981"; // verde pastel
+                                bgColor = "#d1fae5";     // verde pastel fondo
+                            } else if (c.status === "CONTROL BOT") {
+                                borderColor = "#3b82f6"; // azul pastel
+                                bgColor = "#eff6ff";     // azul pastel fondo
+                            }
+                            const statusBgColor =
+                                c.status === "ATENDIDA" ? "#d1fae5" :
+                                    c.status === "EN ESPERA" ? "#fee2e2" :
+                                        "#eff6ff"; // CONTROL BOT
+
+                            const hoverBgColor =
+                                c.status === "ATENDIDA" ? "#a7f3d0" :
+                                    c.status === "EN ESPERA" ? "#fca5a5" :
+                                        "#dbeafe";
+
 
                             return (
                                 <ListItemButton
@@ -886,13 +903,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                         borderRadius: 2,
                                         border: "1px solid #e2e8f0",
                                         boxShadow: selected ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
-                                        backgroundColor: selected
-                                            ? "#dbeafe"
-                                            : needsAttention
-                                                ? "#fee2e2"
-                                                : "#f0fdf4",
+                                        backgroundColor: selected ? "#dbeafe" : statusBgColor,
                                         "&:hover": {
-                                            backgroundColor: needsAttention ? "#fecaca" : "#e0f2fe",
+                                            backgroundColor: hoverBgColor,
                                             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                                         },
                                         position: "relative",
@@ -913,8 +926,20 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     <Box sx={{ position: "relative", mr: 1.5 }}>
                                         <Box
                                             component="img"
-                                            src={isHuman ? "/user.webp" : "/PWBot.png"}
-                                            alt={isHuman ? "Atendido" : "Control Bot"}
+                                            src={
+                                                isHuman
+                                                    ? "/user.webp"               // ATENDIDA
+                                                    : c.status === "EN ESPERA"
+                                                        ? "/user-en-espera.webp"     // EN ESPERA
+                                                        : "/PWBot.png"               // CONTROL BOT
+                                            }
+                                            alt={
+                                                isHuman
+                                                    ? "Atendido"
+                                                    : c.status === "EN ESPERA"
+                                                        ? "En espera"
+                                                        : "Control Bot"
+                                            }
                                             sx={{
                                                 width: 36,
                                                 height: 36,
@@ -923,13 +948,11 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                 border: "1px solid #e2e8f0",
                                                 boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
                                                 transition: "transform .2s, box-shadow .2s",
-                                                "&:hover": {
-                                                    transform: "scale(1.1)",
-                                                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                                                },
+                                                "&:hover": { transform: "scale(1.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" },
                                             }}
                                         />
                                     </Box>
+
 
                                     {/* Contenido */}
                                     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -960,12 +983,21 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                     borderRadius: 1,
                                                     fontSize: 11,
                                                     fontWeight: 700,
-                                                    color: isHuman ? "#065f46" : "#1e40af",
-                                                    backgroundColor: isHuman ? "#ecfdf5" : "#eff6ff",
-                                                    border: isHuman ? "1px solid #10b981" : "1px solid #3b82f6",
+                                                    color:
+                                                        c.status === "ATENDIDA" ? "#065f46" :  // verde pastel
+                                                            c.status === "EN ESPERA" ? "#991b1b" : // rojo pastel
+                                                                "#1e40af",                             // azul pastel (CONTROL BOT)
+                                                    backgroundColor:
+                                                        c.status === "ATENDIDA" ? "#d1fae5" : // verde pastel fondo
+                                                            c.status === "EN ESPERA" ? "#fee2e2" : // rojo pastel fondo
+                                                                "#eff6ff",                             // azul pastel fondo
+                                                    border:
+                                                        c.status === "ATENDIDA" ? "1px solid #10b981" :
+                                                            c.status === "EN ESPERA" ? "1px solid #dc2626" :
+                                                                "1px solid #3b82f6",
                                                 }}
                                             >
-                                                {isHuman ? "ATENDIDO" : "CONTROL BOT"}
+                                                {c.status}
                                             </Box>
 
                                             {minutesAgo !== null && (
@@ -973,6 +1005,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                     hace {formatTimeAgo(minutesAgo)}
                                                 </Typography>
                                             )}
+
                                         </Box>
                                     </Box>
 

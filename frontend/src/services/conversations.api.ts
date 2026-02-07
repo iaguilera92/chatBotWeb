@@ -31,3 +31,12 @@ export async function setConversationMode(
     if (!res.ok) throw new Error("No se pudo cambiar el modo");
     return res.json();
 }
+
+export async function finishConversationAPI(phone: string) {
+    const res = await fetch(`${API_URL}/api/conversations/${phone}/finalizar`, {
+        method: "POST",
+    });
+
+    if (!res.ok) throw new Error("No se pudo finalizar la conversación");
+    return res.json();
+}

@@ -5,7 +5,6 @@ export type BotPhase =
     | "waiting_confirmation"
     | "waiting_lead"
     | "lead_sent";
-    
 
 export const botStatus = {
     enabled: true,
@@ -21,4 +20,8 @@ export const botStatus = {
     leadOffer: null as string | null,
     leadRegisteredAt: null as Date | null,
     leadErrors: 0,
+
+    // 💬 HISTORIAL DE MENSAJES
+    messages: [] as { from: "user" | "bot"; text: string; timestamp: Date }[],
 };
+
