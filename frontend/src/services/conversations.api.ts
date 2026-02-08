@@ -3,10 +3,15 @@ import { ENV } from "../config/env";
 const API_URL = ENV.API_URL;
 
 export async function getConversations() {
-    const res = await fetch(`${API_URL}/api/conversations`);
-    if (!res.ok) throw new Error("Error cargando conversaciones");
-    return res.json();
+    try {
+        const res = await fetch(`${API_URL}/api/conversations`);
+        if (!res.ok) return [];
+        return await res.json();
+    } catch {
+        return [];
+    }
 }
+
 
 export async function getConversation(phone: string) {
     const res = await fetch(`${API_URL}/api/conversations/${phone}`);

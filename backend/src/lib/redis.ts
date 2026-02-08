@@ -2,71 +2,75 @@ import Redis from "ioredis";
 
 let redis: Redis | null = null;
 
+/**
+ * Devuelve una instancia de Redis o null si no hay REDIS_URL
+ */
 function getRedis(): Redis | null {
     if (!process.env.REDIS_URL) {
-        // localhost: no crear instancia
-        return null;
+        return null; // localhost / sin redis
     }
 
     if (!redis) {
-        redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+        redis = new Redis(process.env.REDIS_URL, {
+            maxRetriesPerRequest: null,
+        });
 
         redis.on("connect", () => {
-            if (process.env.NODE_ENV !== "development") {
-                console.log("🧠 Redis conectado");
-            }
+            console.log("🧠 Redis conectado");
         });
 
         redis.on("error", (err) => {
-            if (process.env.NODE_ENV !== "development") {
-                console.error("❌ Redis error", err);
-            }
+            console.error("❌ Redis error", err);
         });
     }
 
     return redis;
 }
 
-// Wrapper seguro que no falla si redis es null
+/**
+ * Wrapper seguro: nunca rompe si Redis no existe
+ */
 export const redisSafe = {
-    get: async (key: string) => {
-        const redis = getRedis();
-        if (!redis) return null;
+    async get(key: string): Promise<string | null> {
+        const r = getRedis();
+        if (!r) return null;
 
-        const value = await redis.get(key);
-        if (!value) return null;
-
-        try {
-            return JSON.parse(value); // parsea si es JSON
-        } catch {
-            return value; // si no es JSON, devuelve string
-        }
+        return await r.get(key);
     },
-    set: async (key: string, value: any, ttlSeconds?: number) => {
-        const redis = getRedis();
-        if (!redis) return; // si redis no existe, simplemente salimos
 
-        const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+    async set(
+        key: string,
+        value: string,
+        ttlSeconds?: number
+    ): Promise<void> {
+        const r = getRedis();
+        if (!r) return;
 
         if (ttlSeconds) {
-            await redis.set(key, stringValue, "EX", ttlSeconds); // TTL opcional
+            await r.set(key, value, "EX", ttlSeconds);
         } else {
-            await redis.set(key, stringValue);
+            await r.set(key, value);
         }
     },
-    keys: async (pattern: string) => getRedis()?.keys(pattern) ?? [],
-    mget: async (keys: string[]) => {
-        const redis = getRedis();
-        if (!redis) return []; // si redis no existe, devolvemos arreglo vacío
 
-        const values = await redis.mget(keys); // ya es seguro
-        return values.map((v) => {
-            if (v === null) return null; // mget devuelve null si la key no existe
-            try {
-                return JSON.parse(v);
-            } catch {
-                return v;
-            }
-        });
+    async del(key: string): Promise<void> {
+        const r = getRedis();
+        if (!r) return;
+
+        await r.del(key);
+    },
+
+    async keys(pattern: string): Promise<string[]> {
+        const r = getRedis();
+        if (!r) return [];
+
+        return await r.keys(pattern);
+    },
+
+    async mget(keys: string[]): Promise<(string | null)[]> {
+        const r = getRedis();
+        if (!r || keys.length === 0) return [];
+
+        return await r.mget(keys);
     },
 };

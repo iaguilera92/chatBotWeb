@@ -13,6 +13,8 @@ export type Conversation = {
     mode: ConversationMode;
     needsHuman: boolean;
     finished?: boolean;
-    // opcional: agregar status explícito si quieres
     status?: "EN ESPERA" | "CONTROL BOT" | "ATENDIDA";
+    leadEmail?: string;
+    leadBusiness?: string;
+    leadOffer?: string;
 };

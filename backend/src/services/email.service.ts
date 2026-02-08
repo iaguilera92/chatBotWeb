@@ -125,6 +125,4 @@ export async function sendLeadEmail({
       },
     }
   );
-
-  console.log("📧 [EMAIL] Enviado vía Brevo API REST");
 }

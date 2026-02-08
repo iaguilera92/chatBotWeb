@@ -3,32 +3,10 @@ import { sendLeadEmail } from "./email.service";
 import { botStatus } from "../state/botStatus";
 import { redisSafe } from "../lib/redis";
 import { finishConversation } from "../services/conversations.store";
+import { OfferResumen, OffersText, capitalizeFirst, isFlowBreaking, insults } from "../helpers/HelperChat";
+import { UiMessage } from "../models/Chats";
 
 const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
-
-// Tipos reutilizados
-export type UiMessage = {
-    from: "user" | "bot";
-    text?: string | null;
-    image?: string;
-    video?: string;
-    status?: "sent" | "delivered" | "seen";
-    timestamp?: string | Date;
-};
-
-export type AiRole = "system" | "user" | "assistant";
-
-export type AiMessage = {
-    role: AiRole;
-    content: string;
-};
-
-function isFlowBreaking(text: string) {
-    return !(
-        /^(si|sí|no|ok|dale|1|2|confirmo|confirmar)$/i.test(text) ||
-        /^[^\s@]+@[^\s@]+\.[^\s@]+/.test(text)
-    );
-}
 
 // HANDLER PRINCIPAL
 export async function handleChat(messages: UiMessage[]): Promise<string> {
@@ -131,23 +109,10 @@ Si tienes cualquier problema, avísame.`;
         const isAffirmative =
             /\b(si|sí|ok|dale|claro|bueno|ya|perfecto)\b/i.test(text);
 
-
-
         if (isAffirmative && phase === "waiting_offer_intro") {
             botStatus.leadErrors = 0;
             botStatus.phase = "waiting_offer_selection";
-            return `*Oferta 1: Pago único*
-💰 Reserva inicial: $29.990 CLP
-💵 Pago final: $70.000 CLP
-🧾 Inversión total: $99.990 CLP
-⏱️ Tiempo de desarrollo: 3 a 7 días
-
-*Oferta 2: Suscripción mensual*
-🚀 Desarrollo inicial: $29.990 CLP
-📆 Suscripción mensual: $9.990 CLP
-⚡ Tiempo de desarrollo: 72 hrs
-
-¿Cuál oferta te interesa más? 😊`;
+            return OfferResumen;
         }
 
         /* 🎯 3) SELECCIÓN DE OFERTA → DETALLE (HARDCODED) */
@@ -196,88 +161,16 @@ Si tienes cualquier problema, avísame.`;
             return "🤔 Elige una opción válida escribiendo *1* o *2*, por favor 😊";
         }
 
-
-
         if (isOffer1 && phase === "waiting_offer_selection") {
             botStatus.phase = "waiting_confirmation";
             botStatus.leadOffer = "Oferta 1 - Pago único";
-
-            return `DETALLE – *Oferta 1: Pago único*
-
-🟢 *Precios (2 cuotas)*
-Reserva inicial: $29.990 CLP
-Pago final al entregar el sitio: $70.000 CLP
-
-⏰ *Plazo de desarrollo*
-Entre 3 y 7 días, según complejidad y contenido.
-
-📦 *Incluye*
-- Desarrollo completo de sitio web profesional.
-- Diseño moderno y 100% responsivo.
-- Hosting seguro incluido.
-- Sitio web administrable con acceso seguro.
-- Entrega final del sitio listo para publicar.
-- Capacitación básica para administrar el sitio.
-
-📑 *Secciones incluidas*
-- Inicio
-- Datos del negocio
-- Servicios / precios
-- Contadores
-- Evidencias / trabajos
-- Ubicación (mapa)
-- Contacto (formulario validado)
-- Integración WhatsApp y correo
-- Nosotros
-- Menú responsivo
-- Footer
-- Panel de administración estándar
-
-🧾 *Inversión total: $99.990 CLP*
-
-📌 *Importante*
-- Cambios posteriores se cotizan según requerimiento.
-
-*¿Confirmas esta opción?* 👨‍💻`;
+            return OffersText.offer1;
         }
 
         if (isOffer2 && phase === "waiting_offer_selection") {
             botStatus.phase = "waiting_confirmation";
             botStatus.leadOffer = "Oferta 2 - Suscripción mensual";
-
-            return `DETALLE – *Oferta 2: Suscripción mensual*
-
-🟢 *Precios*
-Desarrollo inicial: $29.990 CLP
-Suscripción mensual: $9.990 CLP
-
-⏰ *Plazo de desarrollo*
-72 horas desde la entrega del contenido.
-
-📦 *Incluye*
-- Desarrollo completo de sitio web profesional.
-- Diseño moderno y 100% responsivo.
-- Hosting seguro incluido.
-- Sitio web administrable con acceso seguro.
-- Soporte técnico 24/7.
-- Cambios y mejoras continuas.
-- Acompañamiento permanente: nos encargamos de tu web.
-
-📑 *Secciones incluidas*
-- Inicio
-- Datos del negocio
-- Servicios / precios
-- Contadores
-- Evidencias / trabajos
-- Ubicación (mapa)
-- Contacto (formulario validado)
-- Integración WhatsApp y correo
-- Nosotros
-- Menú responsivo
-- Footer
-- Panel de administración estándar
-
-*¿Confirmas esta opción?* 👨‍💻`;
+            return OffersText.offer2;
         }
 
         /* 🚫 CONFIRMACIÓN SIN OFERTA */
@@ -306,20 +199,6 @@ Suscripción mensual: $9.990 CLP
         }
 
         /* 🚫 Regla anti-insultos */
-        const insults = [
-            "pete", "petardo",
-            "idiota", "imbécil", "imbecil", "imbesil",
-            "tonto", "tonta", "tontos", "tontas",
-            "weon", "weona", "weón", "weona", "hueon", "hueona", "hueón", "hueona",
-            "tarado", "tarada",
-            "estúpido", "estupido", "estúpida", "estupida",
-            "payaso", "payasa",
-            "pelotudo", "pelotuda",
-            "gil", "gilazo",
-            "pajero", "pajera",
-            "imbecil", "leso", "lesa",
-            "wn", "wna"
-        ];
         const insultMatch = text.match(new RegExp(`\\b(${insults.join("|")})\\b`, "i"));
 
         if (insultMatch) {
@@ -378,8 +257,8 @@ Suscripción mensual: $9.990 CLP
                     return `⚠️ Formato incorrecto.\nPor favor envíame:\n1) Tu correo electrónico\n2) Nombre del negocio\n\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
                 }
 
-                const email = match[1];
-                const business = match[2];
+                const email = match[1]; //EMAIL CLIENTE
+                const business = capitalizeFirst(match[2]); //NEGOCIO CLIENTE
 
                 const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
                 if (!isValidEmail) {
@@ -422,6 +301,7 @@ Suscripción mensual: $9.990 CLP
                         leadEmail: botStatus.leadEmail,
                         leadOffer: botStatus.leadOffer,
                         leadRegisteredAt: botStatus.leadRegisteredAt,
+                        lastMessageAt: Date.now(),
                         messages: botStatus.messages,
                         updatedAt: new Date(),
                     };
@@ -429,7 +309,11 @@ Suscripción mensual: $9.990 CLP
                     await redisSafe.set(redisKey, JSON.stringify(chatData));
 
                     // ✅ NUEVO: finalizar la conversación en el store
-                    await finishConversation(phone);
+                    await finishConversation(phone, {
+                        leadEmail: botStatus.leadEmail,
+                        leadBusiness: business,
+                        leadOffer: botStatus.leadOffer ?? "Oferta no especificada",
+                    });
 
                     console.log("💾 Conversación finalizada en Redis:", phone, chatData);
 
@@ -503,7 +387,6 @@ Suscripción mensual: $9.990 CLP
                 intent: flowBroken ? "out_of_flow" : "in_flow"
             }
         );
-
 
     } catch (err: any) {
         console.error("🤖 Error en handleChat:", err);

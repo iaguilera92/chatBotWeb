@@ -1,5 +1,5 @@
 // scripts/reset-conversations.ts
-import { redisSafe } from "../lib/redis-safe"; // ajusta la ruta según tu estructura
+import { redisSafe } from "../lib/redis";
 
 async function resetConversations() {
     const keys = await redisSafe.keys("convo:*");
