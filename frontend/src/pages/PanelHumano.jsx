@@ -1028,7 +1028,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             }}
                         >
                             {/* IZQUIERDA */}
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.8, sm: 1.5 } }}>
                                 {isMobile && (
                                     <IconButton
                                         size="small"
@@ -1037,7 +1037,10 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                             setActivePhone(null);
                                         }}
                                         sx={{
+                                            position: "relative",
                                             transition: "all 0.2s ease",
+                                            left: -4,
+                                            marginRight: 0,
                                             "&:hover": { bgcolor: "rgba(59,130,246,.1)" },
                                         }}
                                     >
@@ -1045,13 +1048,25 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     </IconButton>
                                 )}
 
+                                {/* Avatar */}
+                                <Box
+                                    component="img"
+                                    src="/user.webp"
+                                    alt="Usuario"
+                                    sx={{
+                                        width: { xs: 28, sm: 36 },
+                                        height: { xs: 28, sm: 36 },
+                                        borderRadius: "50%",
+                                    }}
+                                />
+
                                 <Box>
                                     {/* Teléfono */}
                                     <Typography
                                         fontWeight={600}
-                                        lineHeight={1.2}
-                                        fontSize={15}
-                                        sx={{ mb: 0.5 }}
+                                        lineHeight={{ xs: 1, sm: 1.2 }}
+                                        fontSize={{ xs: 13, sm: 15 }}
+                                        sx={{ mb: 0.3 }}
                                     >
                                         {chat.phone}
                                     </Typography>
@@ -1061,11 +1076,11 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                         sx={{
                                             display: "inline-flex",
                                             alignItems: "center",
-                                            gap: 0.6,
-                                            px: 1,
-                                            py: 0.3,
+                                            gap: { xs: 0.3, sm: 0.6 },
+                                            px: { xs: 0.6, sm: 1 },
+                                            py: { xs: 0.2, sm: 0.3 },
                                             borderRadius: 2,
-                                            fontSize: 11,
+                                            fontSize: { xs: 10, sm: 11 },
                                             fontWeight: 700,
                                             transition: "all 0.3s ease",
                                             backgroundColor: isHumanMode ? "#ecfdf5" : "#eff6ff",
@@ -1075,18 +1090,19 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     >
                                         {isHumanMode ? (
                                             <>
-                                                <PersonIcon sx={{ fontSize: 14 }} />
+                                                <PersonIcon sx={{ fontSize: { xs: 12, sm: 14 } }} />
                                                 CONTROL HUMANO
                                             </>
                                         ) : (
                                             <>
-                                                <SmartToyIcon sx={{ fontSize: 14 }} />
+                                                <SmartToyIcon sx={{ fontSize: { xs: 12, sm: 14 } }} />
                                                 IA ACTIVA
                                             </>
                                         )}
                                     </Box>
                                 </Box>
                             </Box>
+
 
                             {/* DERECHA: Botón "Devolver a IA" */}
                             {isHumanMode && (
@@ -1168,35 +1184,87 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 </Box>
                             )}
 
-                            {chat.messages.map((m, i) => (
-                                <Box
-                                    key={i}
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: m.from === "user" ? "flex-start" : "flex-end",
-                                        mb: 1.5,
-                                    }}
-                                >
+                            {chat.messages.map((m, i) => {
+                                // Formatear hora
+                                const date = new Date(m.ts);
+                                let hours = date.getHours();
+                                const minutes = date.getMinutes();
+                                const isPM = hours >= 12;
+                                hours = hours % 12 || 12; // convertir a 12h y evitar 0
+                                const minutesStr = minutes.toString().padStart(2, "0");
+                                const timeStr = `${hours}:${minutesStr}${isPM ? "p.m." : "a.m."}`;
+
+                                // Detectar mensaje corto
+                                const shortMsg = m.text.length < 10;
+
+                                return (
                                     <Box
+                                        key={i}
                                         sx={{
-                                            maxWidth: isMobile ? "90%" : "70%",
-                                            px: 2,
-                                            py: 1.2,
-                                            borderRadius: 3,
-                                            fontSize: 14,
-                                            background:
-                                                m.from === "bot"
-                                                    ? "#eff6ff"
-                                                    : m.from === "human"
-                                                        ? "#dcfce7"
-                                                        : "#ffffff",
-                                            border: "1px solid #e5e7eb",
+                                            display: "flex",
+                                            justifyContent: m.from === "user" ? "flex-start" : "flex-end",
+                                            mb: 1.5,
                                         }}
                                     >
-                                        <Typography>{m.text}</Typography>
+                                        <Box
+                                            sx={{
+                                                maxWidth: isMobile ? "90%" : "70%",
+                                                px: 2,
+                                                py: shortMsg ? 0.8 : 1.5,   // menos altura si mensaje corto
+                                                borderRadius: 3,
+                                                fontSize: 14,
+                                                background:
+                                                    m.from === "bot"
+                                                        ? "#eff6ff"
+                                                        : m.from === "human"
+                                                            ? "#dcfce7"
+                                                            : "#ffffff",
+                                                border: "1px solid #e5e7eb",
+                                                whiteSpace: "pre-line",
+                                                position: "relative",
+                                                display: "inline-block",
+                                                minWidth: shortMsg ? "120px" : "auto",  // más ancho si mensaje corto
+                                            }}
+                                        >
+                                            <Typography sx={{ mb: 1 }}>{m.text}</Typography>
+
+                                            {/* 🕒 Hora y check */}
+                                            <Box
+                                                sx={{
+                                                    position: "absolute",
+                                                    bottom: 4,
+                                                    right: 8,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 0.5,
+                                                }}
+                                            >
+                                                <Typography
+                                                    sx={{
+                                                        fontSize: 10,
+                                                        color: "gray",
+                                                        lineHeight: 1,
+                                                    }}
+                                                >
+                                                    {timeStr}
+                                                </Typography>
+                                                {m.from !== "bot" && (
+                                                    <Typography
+                                                        sx={{
+                                                            fontSize: 10,
+                                                            color: m.seen ? "blue" : "gray",
+                                                            lineHeight: 1,
+                                                        }}
+                                                    >
+                                                        {m.seen ? "✓✓" : "✓"}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
                                     </Box>
-                                </Box>
-                            ))}
+                                );
+                            })}
+
                         </Box>
 
                         {/* INPUT FIJO */}

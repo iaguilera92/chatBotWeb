@@ -2,8 +2,8 @@ import { sendToAI } from "./groq.service";
 import { sendLeadEmail } from "./email.service";
 import { botStatus } from "../state/botStatus";
 import { redisSafe } from "../lib/redis";
-import { finishConversation } from "../services/conversations.store";
-import { OfferResumen, OffersText, capitalizeFirst, isFlowBreaking, insults } from "../helpers/HelperChat";
+import { finishConversation, saveMessage } from "../services/conversations.store";
+import { OfferResumen, OffersText, capitalizeFirst, isFlowBreaking, insults, formatDate } from "../helpers/HelperChat";
 import { UiMessage } from "../models/Chats";
 
 const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
@@ -257,11 +257,11 @@ Si tienes cualquier problema, avísame.`;
                     return `⚠️ Formato incorrecto.\nPor favor envíame:\n1) Tu correo electrónico\n2) Nombre del negocio\n\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
                 }
 
-                const email = match[1]; //EMAIL CLIENTE
-                const business = capitalizeFirst(match[2]); //NEGOCIO CLIENTE
+                const email = match[1]; // EMAIL CLIENTE
+                const business = capitalizeFirst(match[2]); // NEGOCIO CLIENTE
 
-                const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-                if (!isValidEmail) {
+                // Validar correo
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                     return `⚠️ El correo ingresado no es válido.\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
                 }
 
@@ -272,6 +272,7 @@ Si tienes cualquier problema, avísame.`;
                     offer: botStatus.leadOffer ?? "Oferta no especificada",
                 });
 
+                // Actualizar botStatus
                 botStatus.leadEmailSent = true;
                 botStatus.leadEmail = email;
                 botStatus.leadRegisteredAt = new Date();
@@ -284,38 +285,22 @@ Si tienes cualquier problema, avísame.`;
                     : null;
 
                 if (phone) {
-                    const redisKey = `chat:${phone}`;
-
-                    // Agregar mensaje del bot al historial
                     const botReply = "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
-                    botStatus.messages.push({
-                        from: "bot",
-                        text: botReply,
-                        timestamp: new Date(),
-                    });
 
-                    // Guardar en Redis todo el estado relevante
-                    const chatData = {
-                        phone,
-                        phase: botStatus.phase,
-                        leadEmail: botStatus.leadEmail,
-                        leadOffer: botStatus.leadOffer,
-                        leadRegisteredAt: botStatus.leadRegisteredAt,
-                        lastMessageAt: Date.now(),
-                        messages: botStatus.messages,
-                        updatedAt: new Date(),
-                    };
+                    // 🔑 Crear resumen como mensaje del cliente
+                    const resumen = `Datos del cliente:\n\n📧 Correo: ${email}\n🏢 Negocio: ${business}\n💰 Oferta: ${botStatus.leadOffer ?? "Oferta no especificada"}\n🕒 Recibido: ${formatDate(new Date())}`;
 
-                    await redisSafe.set(redisKey, JSON.stringify(chatData));
+                    // 1️⃣ Guardar mensaje del usuario en la conversación
+                    await saveMessage(phone, "user", resumen);
 
-                    // ✅ NUEVO: finalizar la conversación en el store
+                    // 3️⃣ Finalizar la conversación y agregar datos extra
                     await finishConversation(phone, {
                         leadEmail: botStatus.leadEmail,
                         leadBusiness: business,
                         leadOffer: botStatus.leadOffer ?? "Oferta no especificada",
                     });
 
-                    console.log("💾 Conversación finalizada en Redis:", phone, chatData);
+                    console.log("💾 Conversación finalizada en Redis:", phone);
 
                     return botReply;
                 }
@@ -327,6 +312,7 @@ Si tienes cualquier problema, avísame.`;
                 return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
             }
         }
+
 
 
         /* 🚫 Bot deshabilitado manualmente */

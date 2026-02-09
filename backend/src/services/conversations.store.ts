@@ -2,15 +2,11 @@ import { redisSafe } from "../lib/redis";
 import { Conversation, ChatMessage, ConversationMode } from "../models/Conversations";
 import { normalizePhone } from "../services/phone.util";
 
-/* =======================
-   Keys helpers
-======================= */
+/* Keys helpers */
 const key = (phone: string) => `convo:${phone}`;
 const deletedKey = (phone: string) => `convo:deleted:${phone}`;
 
-/* =======================
-   Obtener conversación
-======================= */
+/*  Obtener conversación */
 export async function getConversation(phone: string): Promise<Conversation> {
     phone = normalizePhone(phone);
 
@@ -38,9 +34,7 @@ export async function getConversation(phone: string): Promise<Conversation> {
     return convo;
 }
 
-/* =======================
-   Guardar mensaje
-======================= */
+/*  Guardar mensaje */
 export async function saveMessage(
     phone: string,
     from: ChatMessage["from"],
@@ -70,9 +64,7 @@ export async function saveMessage(
     await redisSafe.set(key(phone), JSON.stringify(convo));
 }
 
-/* =======================
-   Cambiar modo
-======================= */
+/*  Cambiar modo */
 export async function setMode(phone: string, mode: ConversationMode) {
     phone = normalizePhone(phone);
 
@@ -90,9 +82,7 @@ export async function setMode(phone: string, mode: ConversationMode) {
     await redisSafe.set(key(phone), JSON.stringify(convo));
 }
 
-/* =======================
-   Finalizar conversación
-======================= */
+/*  Finalizar conversación */
 export async function finishConversation(
     phone: string,
     extras?: { leadEmail?: string; leadBusiness?: string; leadOffer?: string }
@@ -122,11 +112,7 @@ export async function finishConversation(
     return convo;
 }
 
-
-
-/* =======================
-   Eliminar conversación
-======================= */
+/*  Eliminar conversación */
 export async function deleteConversation(phone: string) {
     phone = normalizePhone(phone);
 
@@ -136,9 +122,7 @@ export async function deleteConversation(phone: string) {
     await redisSafe.set(deletedKey(phone), "1");
 }
 
-/* =======================
-   Listar conversaciones
-======================= */
+/*  Listar conversaciones */
 export async function listConversations(): Promise<Conversation[]> {
     const keys = await redisSafe.keys("convo:*");
     if (!keys.length) return [];
