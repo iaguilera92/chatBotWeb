@@ -87,30 +87,47 @@ export async function finishConversation(
     phone: string,
     extras?: { leadEmail?: string; leadBusiness?: string; leadOffer?: string }
 ) {
-    const convo = await getConversation(phone);
+    const normalized = normalizePhone(phone);
+
+    console.log("🧩 FINISH_CONVO", {
+        phone_raw: phone,
+        phone_normalized: normalized,
+        key: `convo:${normalized}`,
+        extras,
+        timestamp: new Date().toISOString(),
+    });
+
+    const convo = await getConversation(normalized);
 
     convo.finished = true;
     convo.mode = "bot";
     convo.needsHuman = false;
     convo.status = "EN ESPERA";
 
-    // Asegurar que lastMessageAt exista
-    if (convo.messages.length > 0) {
-        convo.lastMessageAt = convo.messages[convo.messages.length - 1].ts;
-    } else {
-        convo.lastMessageAt = Date.now();
-    }
+    convo.lastMessageAt =
+        convo.messages.length > 0
+            ? convo.messages[convo.messages.length - 1].ts
+            : Date.now();
 
-    // Agregar los datos extra si vienen
     if (extras) {
         convo.leadEmail = extras.leadEmail;
         convo.leadBusiness = extras.leadBusiness;
         convo.leadOffer = extras.leadOffer;
     }
 
-    await redisSafe.set(key(phone), JSON.stringify(convo));
+    await redisSafe.set(`convo:${normalized}`, JSON.stringify(convo));
+
+    console.log("✅ FINISH_CONVO_SAVED", {
+        phone: normalized,
+        messages: convo.messages.length,
+        finished: convo.finished,
+        status: convo.status,
+        lastMessageAt: convo.lastMessageAt,
+    });
+
     return convo;
 }
+
 
 /*  Eliminar conversación */
 export async function deleteConversation(phone: string) {

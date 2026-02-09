@@ -24,45 +24,79 @@ export async function conversationRoutes(app: FastifyInstance) {
         try {
             const conversations = await listConversations();
 
-            // 🔹 Log de debug
-            console.log("📄 Listado de conversaciones:");
-            conversations.forEach((c) => {
-                const status = getStatus(c);
-                const date = c.lastMessageAt
-                    ? new Date(c.lastMessageAt)
-                    : c.messages.length > 0
-                        ? new Date(c.messages[c.messages.length - 1].ts)
-                        : null;
+            console.log("📄 Listado de conversaciones (DEBUG):");
 
-                const timeStr = date
-                    ? `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
-                    : "??:??";
+            conversations.forEach((c, index) => {
+                try {
+                    // 🛡️ Blindaje básico
+                    const phone = c?.phone ?? "<SIN PHONE>";
+                    const messages = Array.isArray(c?.messages) ? c.messages : [];
 
-                console.log(
-                    `- ${c.phone} | mode: ${c.mode} | needsHuman: ${c.needsHuman} | finished: ${c.finished} | status: ${status} | lastMessage: ${timeStr}`
-                );
+                    if (!c?.phone) {
+                        console.warn(
+                            `⚠️ Conversación inválida [index=${index}] → phone vacío`,
+                            c
+                        );
+                    }
+
+                    if (!Array.isArray(c?.messages)) {
+                        console.warn(
+                            `⚠️ Conversación con messages corrupto [phone=${phone}]`,
+                            { messages: c?.messages }
+                        );
+                    }
+
+                    const status = getStatus(c);
+
+                    const date =
+                        typeof c?.lastMessageAt === "number" && c.lastMessageAt > 0
+                            ? new Date(c.lastMessageAt)
+                            : messages.length > 0
+                                ? new Date(messages[messages.length - 1].ts)
+                                : null;
+
+                    const timeStr = date
+                        ? `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
+                        : "??:??";
+
+                    console.log(
+                        `- ${phone} | mode: ${c.mode} | needsHuman: ${c.needsHuman} | finished: ${c.finished} | status: ${status} | lastMessage: ${timeStr}`
+                    );
+
+                } catch (innerErr) {
+                    console.error(
+                        `💥 Error procesando conversación [index=${index}]`,
+                        innerErr,
+                        c
+                    );
+                }
             });
 
+            return conversations
+                // ⛔ Filtrar conversaciones rotas antes de enviar al front
+                .filter((c) => typeof c?.phone === "string" && c.phone.trim() !== "")
+                .map((c) => {
+                    const messages = Array.isArray(c.messages) ? c.messages : [];
+                    const lastMessage =
+                        messages.length > 0 ? messages[messages.length - 1] : null;
 
-            return conversations.map((c) => {
-                const messages = Array.isArray(c.messages) ? c.messages : [];
+                    return {
+                        phone: c.phone,
+                        lastMessageAt:
+                            typeof c.lastMessageAt === "number"
+                                ? c.lastMessageAt
+                                : lastMessage
+                                    ? lastMessage.ts
+                                    : Date.now(),
+                        mode: c.mode,
+                        needsHuman: c.needsHuman,
+                        status: getStatus(c),
+                        lastMessage,
+                    };
+                });
 
-                const lastMessage =
-                    messages.length > 0 ? messages[messages.length - 1] : null;
-
-                return {
-                    phone: c.phone,
-                    lastMessageAt:
-                        c.lastMessageAt ??
-                        (lastMessage ? lastMessage.ts : Date.now()),
-                    mode: c.mode,
-                    needsHuman: c.needsHuman,
-                    status: getStatus(c),
-                    lastMessage,
-                };
-            });
         } catch (err) {
-            console.error("❌ Error en /api/conversations", err);
+            console.error("❌ Error crítico en /api/conversations", err);
 
             // 🔒 JAMÁS romper el front
             return [];

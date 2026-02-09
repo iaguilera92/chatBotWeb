@@ -820,13 +820,17 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                             const needsAttention = c.needsHuman && !isHuman;
 
                             const lastMessageTimestamp =
-                                c.lastMessageAt ?? (c.messages?.length ? c.messages[c.messages.length - 1].ts : Date.now());
+                                typeof c.lastMessageAt === "number"
+                                    ? c.lastMessageAt
+                                    : Array.isArray(c.messages) && c.messages.length > 0
+                                        ? c.messages[c.messages.length - 1].ts
+                                        : Date.now();
 
                             const minutesAgo = lastMessageTimestamp
                                 ? Math.floor((Date.now() - new Date(lastMessageTimestamp).getTime()) / 60000)
                                 : 0; // <-- si no hay fecha, ponemos 0 minutos
 
-                            const open = menuPhone === c.phone && Boolean(menuAnchorEl);
+                            const open = Boolean(c.phone) && menuPhone === c.phone && Boolean(menuAnchorEl);
 
                             // Color del borde izquierdo
                             let borderColor = "#3b82f6"; // azul pastel → CONTROL BOT
@@ -855,8 +859,14 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
 
                             return (
                                 <ListItemButton
-                                    key={c.phone}
-                                    onClick={() => selectConversation(c)}
+                                    key={`${c.phone}-${c.lastMessageAt ?? "no-ts"}`}
+                                    onClick={() => {
+                                        if (!c.phone) {
+                                            console.warn("⚠️ Conversación inválida ignorada", c);
+                                            return;
+                                        }
+                                        selectConversation(c);
+                                    }}
                                     sx={{
                                         mb: 0.6,
                                         borderRadius: 2,
