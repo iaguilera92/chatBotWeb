@@ -36,6 +36,7 @@ export default function PanelHumano() {
     const ocultarHeaderChat = isHumanMode && chat;
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const [menuPhone, setMenuPhone] = useState(null);
+    const [showQuickReply, setShowQuickReply] = useState(true);
 
     // CARGAR ATENDIDOS PRIMERA VEZ
     useEffect(() => {
@@ -1163,6 +1164,27 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 paddingBottom: "60px",
                             }}
                         >
+                            {/* Banner Nuevo Lead */}
+                            {chat.messages.length > 0 && chat.messages[0].from === "user" && chat.messages[0].text.includes("Datos del cliente") && (
+                                <Box
+                                    sx={{
+                                        width: "fit-content",
+                                        mx: "auto",
+                                        mb: 1,
+                                        px: 2,
+                                        py: 0.4,
+                                        borderRadius: 2,
+                                        background: "#FFF8DC", // fondo dorado suave
+                                        color: "#B8860B",       // texto dorado oscuro
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        textAlign: "center",
+                                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                    }}
+                                >
+                                    ✨ Nuevo Lead
+                                </Box>
+                            )}
                             {chat.messages.length === 0 && chat.status === "EN ESPERA" && (
                                 <Box
                                     sx={{
@@ -1193,50 +1215,110 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     </Box>
                                 </Box>
                             )}
-
                             {chat.messages.map((m, i) => {
-                                // Formatear hora
                                 const date = new Date(m.ts);
-                                let hours = date.getHours();
-                                const minutes = date.getMinutes();
-                                const isPM = hours >= 12;
-                                hours = hours % 12 || 12; // convertir a 12h y evitar 0
-                                const minutesStr = minutes.toString().padStart(2, "0");
-                                const timeStr = `${hours}:${minutesStr}${isPM ? "p.m." : "a.m."}`;
+                                const hours = date.getHours() % 12 || 12;
+                                const minutes = date.getMinutes().toString().padStart(2, "0");
+                                const timeStr = `${hours}:${minutes}${date.getHours() >= 12 ? "p.m." : "a.m."}`;
 
-                                // Detectar mensaje corto
                                 const shortMsg = m.text.length < 10;
 
+                                // Detectar primer mensaje tipo lead
+                                const isLeadBubble =
+                                    i === 0 &&
+                                    m.from === "user" &&
+                                    m.text.includes("Datos del cliente") &&
+                                    m.text.includes("Correo:") &&
+                                    m.text.includes("Negocio:") &&
+                                    m.text.includes("Oferta:");
+
+                                // Sólo activo si es el único mensaje
+                                const isOnlyMessage = chat.messages.length === 1 && isLeadBubble;
+
+                                // Delay y animación solo si es el único mensaje
+                                const motionProps = isOnlyMessage
+                                    ? {
+                                        initial: { x: "-100%", opacity: 0 },
+                                        animate: { x: 0, opacity: 1 },
+                                        transition: { delay: 0.3, duration: 0.8, type: "spring" },
+                                    }
+                                    : {};
+
                                 return (
-                                    <Box
+                                    <motion.div
                                         key={i}
-                                        sx={{
+                                        {...motionProps}
+                                        style={{
                                             display: "flex",
                                             justifyContent: m.from === "user" ? "flex-start" : "flex-end",
-                                            mb: 1.5,
+                                            marginBottom: 12,
                                         }}
                                     >
                                         <Box
                                             sx={{
                                                 maxWidth: isMobile ? "90%" : "70%",
                                                 px: 2,
-                                                py: shortMsg ? 0.8 : 1.5,   // menos altura si mensaje corto
+                                                py: shortMsg ? 0.8 : 1.5,
                                                 borderRadius: 3,
                                                 fontSize: 14,
-                                                background:
-                                                    m.from === "bot"
+                                                position: "relative",
+                                                display: "inline-block",
+                                                minWidth: shortMsg ? "120px" : "auto",
+                                                whiteSpace: "pre-line",
+                                                overflow: "hidden",
+
+                                                background: isOnlyMessage
+                                                    ? "linear-gradient(135deg, #FFD700, #FFECB3 45%, #FFD700 85%)"
+                                                    : m.from === "bot"
                                                         ? "#eff6ff"
                                                         : m.from === "human"
                                                             ? "#dcfce7"
                                                             : "#ffffff",
-                                                border: "1px solid #e5e7eb",
-                                                whiteSpace: "pre-line",
-                                                position: "relative",
-                                                display: "inline-block",
-                                                minWidth: shortMsg ? "120px" : "auto",  // más ancho si mensaje corto
+
+                                                border: isOnlyMessage ? "1px solid #E6B800" : "1px solid #e5e7eb",
+                                                boxShadow: isOnlyMessage ? "0 0 12px rgba(255, 215, 0, 0.6)" : "none",
+
+                                                ...(isOnlyMessage && {
+                                                    "&::before": {
+                                                        content: '""',
+                                                        position: "absolute",
+                                                        inset: "-1px",
+                                                        borderRadius: "inherit",
+                                                        background:
+                                                            "linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 12%, #FFFACD 22%, rgba(255,255,255,0.9) 32%, transparent 44%)",
+                                                        backgroundSize: "300% 300%",
+                                                        animation: "shineBorderSweep 3.2s linear infinite",
+                                                        pointerEvents: "none",
+                                                        zIndex: 2,
+                                                        mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                                                        maskComposite: "exclude",
+                                                    },
+                                                    "&::after": {
+                                                        content: '""',
+                                                        position: "absolute",
+                                                        inset: 0,
+                                                        background:
+                                                            "linear-gradient(130deg, transparent 42%, rgba(255,255,255,0.85) 50%, transparent 58%)",
+                                                        transform: "translateX(-120%)",
+                                                        animation: "shineDiagonal 4s ease-in-out infinite",
+                                                        borderRadius: "inherit",
+                                                        pointerEvents: "none",
+                                                    },
+                                                }),
                                             }}
                                         >
-                                            <Typography sx={{ mb: 1 }}>{m.text}</Typography>
+                                            <Typography sx={{ mb: 1, fontSize: 14, whiteSpace: "pre-line" }}>
+                                                {isLeadBubble ? (
+                                                    <>
+                                                        <Box component="span" sx={{ fontWeight: "bold" }}>Datos del cliente:</Box>
+                                                        {m.text.replace("Datos del cliente:", "")}
+                                                    </>
+                                                ) : (
+                                                    m.text
+                                                )}
+                                            </Typography>
+
+
 
                                             {/* 🕒 Hora y check */}
                                             <Box
@@ -1249,31 +1331,74 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                                     gap: 0.5,
                                                 }}
                                             >
-                                                <Typography
-                                                    sx={{
-                                                        fontSize: 10,
-                                                        color: "gray",
-                                                        lineHeight: 1,
-                                                    }}
-                                                >
-                                                    {timeStr}
-                                                </Typography>
+                                                <Typography sx={{ fontSize: 10, color: "gray" }}>{timeStr}</Typography>
                                                 {m.from !== "bot" && (
-                                                    <Typography
-                                                        sx={{
-                                                            fontSize: 10,
-                                                            color: m.seen ? "blue" : "gray",
-                                                            lineHeight: 1,
-                                                        }}
-                                                    >
+                                                    <Typography sx={{ fontSize: 10, color: m.seen ? "blue" : "gray" }}>
                                                         {m.seen ? "✓✓" : "✓"}
                                                     </Typography>
                                                 )}
                                             </Box>
                                         </Box>
-                                    </Box>
+                                    </motion.div>
                                 );
                             })}
+
+                            {/* BURBUJA DE RESPUESTA RÁPIDA */}
+                            {showQuickReply &&
+                                chat.messages.length === 1 &&
+                                chat.messages[0].from === "user" &&
+                                chat.messages[0].text.includes("Datos del cliente") && (
+                                    <Box
+                                        onClick={() => {
+                                            setMessage(
+                                                `🙋‍♂️ ¡Hola! Habla con Ignacio Analista Programador de Plataformas web, con el pago de $29.990 iniciamos el desarrollo de tu sitio web. Por favor, envíanos toda la información que quieres publicar de tu negocio.`
+                                            );
+                                            setShowQuickReply(false); // desaparece al hacer clic
+                                        }}
+                                        sx={{
+                                            position: "fixed",
+                                            bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)",
+                                            left: "50%",
+                                            transform: "translateX(-50%)",
+                                            maxWidth: isMobile ? "90%" : "70%",
+                                            px: 3,
+                                            py: 1.2,
+                                            mb: 1,
+                                            borderRadius: 3,
+                                            background: "linear-gradient(135deg, #4fc3f7, #0288d1)",
+                                            color: "#ffffff",
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                            cursor: "pointer",
+                                            boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
+                                            border: "1px solid rgba(2,136,209,0.6)",
+                                            transition: "all 0.25s ease-in-out",
+                                            "&:hover": {
+                                                background: "linear-gradient(135deg, #29b6f6, #0277bd)",
+                                                boxShadow: "0 8px 20px rgba(0,0,0,0.25)",
+                                                transform: "translateX(-50%) translateY(-2px)",
+                                            },
+                                            zIndex: 1200,
+                                            userSelect: "none",
+                                        }}
+                                    >
+                                        Respuesta rápida
+                                        <img
+                                            src="/clic.jpg"
+                                            alt="clic"
+                                            style={{
+                                                width: 18,
+                                                height: 18,
+                                                filter: "invert(1)" // convierte negro a blanco
+                                            }}
+                                        />
+                                    </Box>
+                                )}
+
+
 
                         </Box>
 
@@ -1295,6 +1420,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                 gap: 1,
                             }}
                         >
+
                             {/* INPUT */}
                             <Box
                                 sx={{

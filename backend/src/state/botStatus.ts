@@ -4,6 +4,7 @@ export type BotPhase =
     | "waiting_offer_selection"
     | "waiting_confirmation"
     | "waiting_lead"
+    | "waiting_business"
     | "lead_sent";
 
 export const botStatus = {

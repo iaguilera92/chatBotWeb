@@ -1,25 +1,11 @@
-import {
-    Box,
-    Paper,
-    Typography,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-} from "@mui/material";
+import { Box, Paper, Typography, Dialog, DialogContent, DialogActions, Button, } from "@mui/material";
 import { useTenant } from "../context/TenantContext";
 import ChatContainer from "../components/chat/ChatContainer";
 import ChatInput from "../components/chat/ChatInput";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function Chat() {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-    console.log("🔥 API_URL usada:", API_URL);
-
-
     const tenant = useTenant();
     const [welcomeOpen, setWelcomeOpen] = useState(true);
     const [starting, setStarting] = useState(false);
@@ -30,11 +16,9 @@ export default function Chat() {
         business: null,
         sent: false,
     });
-
     const [messages, setMessages] = useState([
         { from: "bot", text: tenant.welcomeMessage },
     ]);
-
     const handleSend = async (text) => {
         const userMessage = {
             from: "user",

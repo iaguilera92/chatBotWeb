@@ -40,7 +40,6 @@ export async function setConversationMode(
     }
 
     const data = await res.json();
-    console.log("✅ setConversationMode result:", data); // 🔹 log resultado JSON
 
     return data;
 }

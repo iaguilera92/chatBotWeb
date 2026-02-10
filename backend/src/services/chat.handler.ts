@@ -31,6 +31,14 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             .trim()
             .toLowerCase();
 
+        function normalizeText(str: string) {
+            return str
+                .toLowerCase()
+                .replace(/[\*_\u00A0]/g, "") // eliminar *, _, NBSP
+                .replace(/[\p{Emoji}]/gu, "") // eliminar emojis
+                .trim();
+        }
+
         // 🔴 ÚLTIMO CHAT BOT
         const lastBotMessage =
             [...messages]
@@ -39,26 +47,32 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                 ?.text ?? "";
 
         const PHRASES = {
-            OFFER_INTRO: "¿Te gustaría ver las ofertas",
-            OFFER_SELECTION: "¿Cuál oferta te interesa",
-            CONFIRMATION: "¿Confirmas esta opción",
-            LEAD_REQUEST: "Tu correo electrónico",
-            LEAD_SENT: "Te enviamos un correo",
+            OFFER_INTRO: "¿te gustaría ver las ofertas",
+            OFFER_SELECTION: "¿cuál oferta te interesa",
+            CONFIRMATION: "¿confirmas esta opción",
+            LEAD_REQUEST: "tu correo electrónico",
+            LEAD_BUSINESS: "ahora indícame el nombre del negocio",
+            LEAD_SENT: "te enviamos un correo",
         };
 
         // FASE
+        const normalizedBotMessage = normalizeText(lastBotMessage);
+
         const phase =
-            lastBotMessage.includes(PHRASES.OFFER_INTRO)
+            normalizedBotMessage.includes(PHRASES.OFFER_INTRO)
                 ? "waiting_offer_intro"
-                : lastBotMessage.includes(PHRASES.OFFER_SELECTION)
+                : normalizedBotMessage.includes(PHRASES.OFFER_SELECTION)
                     ? "waiting_offer_selection"
-                    : lastBotMessage.includes(PHRASES.CONFIRMATION)
+                    : normalizedBotMessage.includes(PHRASES.CONFIRMATION)
                         ? "waiting_confirmation"
-                        : lastBotMessage.includes(PHRASES.LEAD_REQUEST)
+                        : normalizedBotMessage.includes(PHRASES.LEAD_REQUEST)
                             ? "waiting_lead"
-                            : lastBotMessage.includes(PHRASES.LEAD_SENT)
-                                ? "lead_sent"
-                                : "idle";
+                            : normalizedBotMessage.includes(PHRASES.LEAD_BUSINESS)
+                                ? "waiting_business"
+                                : normalizedBotMessage.includes(PHRASES.LEAD_SENT)
+                                    ? "lead_sent"
+                                    : "idle";
+
 
 
         /* 🔁 REENVÍO DE CORREO (PRIORIDAD MÁXIMA) */
@@ -92,14 +106,16 @@ Si tienes cualquier problema, avísame.`;
         /* 👋 1) SALUDO EXACTO */
         const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
 
-        if (isGreeting && phase === "idle") {
-            botStatus.phase = "waiting_offer_intro"; // 👈 CLAVE
-            return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
+        if (isGreeting) {
+            if (phase === "idle") {
+                botStatus.phase = "waiting_offer_intro";
+                return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
+            } else {
+                // Saludo mientras hay un flujo activo
+                return "😊 ¡Bienvenido de nuevo! ¿Quieres continuar viendo las ofertas de hoy?";
+            }
         }
 
-        if (isGreeting && phase !== "idle") {
-            return "😊 Sigamos donde quedamos.";
-        }
 
         if (phase === "lead_sent") {
             return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
@@ -221,7 +237,8 @@ Si tienes cualquier problema, avísame.`;
                     m.text.includes("Te enviamos un correo")
             );
 
-        if (lastMessageWasLeadConfirmation) {
+        // ❌ Solo bloquear si NO estamos ingresando un nuevo lead
+        if (lastMessageWasLeadConfirmation && !["waiting_lead", "waiting_business"].includes(phase)) {
             return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
         }
 
@@ -232,87 +249,50 @@ Si tienes cualquier problema, avísame.`;
             return "😊 No hay problema.\n¿Te gustaría ver las ofertas de hoy?";
         }
 
-        /* 📧 Detectar correo */
-        /* 📧 ESPERA EMAIL + NEGOCIO */
+
+
+        /**** FINAL:📧 Detectar correo y negocio ****/
         if (phase === "waiting_lead") {
-            try {
-                // ✅ OPCIONAL 1: solo email (sin negocio)
-                const onlyEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
-                if (onlyEmail) {
-                    return `Perfecto 👍 ahora indícame el *nombre del negocio o emprendimiento*`;
-                }
+            const onlyEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
 
-                // 🧾 Email + negocio en un solo mensaje
-                const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
-                if (!match) {
-                    botStatus.leadErrors = (botStatus.leadErrors ?? 0) + 1;
-
-                    if (botStatus.leadErrors >= 2) {
-                        botStatus.leadErrors = 0;
-                        botStatus.phase = "waiting_offer_intro";
-
-                        return `😅 Veo que está siendo complicado.\n\n¿Quieres que volvamos a ver las ofertas o prefieres intentarlo más tarde?`;
-                    }
-
-                    return `⚠️ Formato incorrecto.\nPor favor envíame:\n1) Tu correo electrónico\n2) Nombre del negocio\n\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
-                }
-
-                const email = match[1]; // EMAIL CLIENTE
-                const business = capitalizeFirst(match[2]); // NEGOCIO CLIENTE
-
-                // Validar correo
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    return `⚠️ El correo ingresado no es válido.\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
-                }
-
-                // 📨 Enviar correo
-                await sendLeadEmail({
-                    email,
-                    business,
-                    offer: botStatus.leadOffer ?? "Oferta no especificada",
-                });
-
-                // Actualizar botStatus
-                botStatus.leadEmailSent = true;
-                botStatus.leadEmail = email;
-                botStatus.leadRegisteredAt = new Date();
-                botStatus.phase = "lead_sent";
-                botStatus.leadErrors = 0;
-
-                // 🧠 Generar teléfono simulado
-                const phone = SIMULATE_PHONE
-                    ? "+569" + Math.floor(10000000 + Math.random() * 90000000)
-                    : null;
-
-                if (phone) {
-                    const botReply = "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
-
-                    // 🔑 Crear resumen como mensaje del cliente
-                    const resumen = `Datos del cliente:\n\n📧 Correo: ${email}\n🏢 Negocio: ${business}\n💰 Oferta: ${botStatus.leadOffer ?? "Oferta no especificada"}\n🕒 Recibido: ${formatDate(new Date())}`;
-
-                    // 1️⃣ Guardar mensaje del usuario en la conversación
-                    await saveMessage(phone, "user", resumen);
-
-                    // 3️⃣ Finalizar la conversación y agregar datos extra
-                    await finishConversation(phone, {
-                        leadEmail: botStatus.leadEmail,
-                        leadBusiness: business,
-                        leadOffer: botStatus.leadOffer ?? "Oferta no especificada",
-                    });
-
-                    console.log("💾 Conversación finalizada en Redis:", phone);
-
-                    return botReply;
-                }
-
-                return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
-
-            } catch (e) {
-                console.error("📧 Error al enviar correo o guardar conversación", e);
-                return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
+            if (onlyEmail) {
+                // Guardamos el email y pasamos a esperar negocio
+                botStatus.leadEmail = text;
+                botStatus.phase = "waiting_business";
+                return `Perfecto 👍 ahora indícame el *nombre del negocio o emprendimiento*`;
             }
+
+            const match = text.match(/^([^\s@]+@[^\s@]+\.[^\s@]+)\s+(.+)$/);
+            if (!match) {
+                botStatus.leadErrors = (botStatus.leadErrors ?? 0) + 1;
+
+                if (botStatus.leadErrors >= 2) {
+                    botStatus.leadErrors = 0;
+                    botStatus.phase = "waiting_offer_intro";
+                    return `😅 Veo que está siendo complicado.\n\n¿Quieres que volvamos a ver las ofertas o prefieres intentarlo más tarde?`;
+                }
+
+                return `⚠️ Formato incorrecto.\nPor favor envíame:\n1) Tu correo electrónico\n2) Nombre del negocio\n\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
+            }
+
+            const email = match[1];
+            const business = capitalizeFirst(match[2]);
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return `⚠️ El correo ingresado no es válido.\nEjemplo:\ncorreo@dominio.cl Mi Negocio`;
+            }
+
+            // Si email + negocio están juntos, procesamos el lead completo
+            return await processLead(email, business);
         }
 
+        /* 📦 Esperar negocio si solo se ingresó email */
+        if (phase === "waiting_business") {
+            const business = capitalizeFirst(text.trim());
+            const email = botStatus.leadEmail!;
+            return await processLead(email, business);
+        }
+        //****FIN****
 
 
         /* 🚫 Bot deshabilitado manualmente */
@@ -366,7 +346,6 @@ Si tienes cualquier problema, avísame.`;
             return "🙂 Para continuar, dime qué opción prefieres:\n*1* Pago único\n*2* Suscripción mensual";
         }
 
-
         return await sendToAI(
             [{ role: "user", content: text }],
             {
@@ -383,5 +362,49 @@ Si tienes cualquier problema, avísame.`;
 
         // fallback seguro
         return "⚠️ El asistente está teniendo dificultades momentáneas. Intenta nuevamente en unos segundos.";
+    }
+}
+
+/* FINALIZAR CHAT - EN ESPERA*/
+async function processLead(email: string, business: string) {
+    try {
+        // 📨 Enviar correo
+        await sendLeadEmail({
+            email,
+            business,
+            offer: botStatus.leadOffer ?? "Oferta no especificada",
+        });
+
+        // Actualizar botStatus
+        botStatus.leadEmailSent = true;
+        botStatus.leadEmail = email;
+        botStatus.leadRegisteredAt = new Date();
+        botStatus.phase = "lead_sent";
+        botStatus.leadErrors = 0;
+
+        // 🧠 Generar teléfono simulado
+        const phone = SIMULATE_PHONE
+            ? "+569" + Math.floor(10000000 + Math.random() * 90000000)
+            : null;
+
+        if (phone) {
+            const botReply = "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
+
+            const resumen = `Datos del cliente:\n\n📧 Correo: ${email}\n🏢 Negocio: ${business}\n💰 Oferta: ${botStatus.leadOffer ?? "Oferta no especificada"}\n🕒 Recibido: ${formatDate(new Date())}`;
+
+            await saveMessage(phone, "user", resumen);
+            await finishConversation(phone, {
+                leadEmail: botStatus.leadEmail,
+                leadOffer: botStatus.leadOffer ?? "Oferta no especificada",
+            });
+
+            console.log("💾 Conversación finalizada en Redis:", phone);
+            return botReply;
+        }
+
+        return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
+    } catch (e) {
+        console.error("📧 Error al enviar correo o guardar conversación", e);
+        return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
     }
 }
