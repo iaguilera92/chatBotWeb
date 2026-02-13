@@ -5,6 +5,7 @@ import { redisSafe } from "../lib/redis";
 import { finishConversation, saveMessage } from "../services/conversations.store";
 import { OfferResumen, OffersText, capitalizeFirst, isFlowBreaking, insults, formatDate } from "../helpers/HelperChat";
 import { UiMessage } from "../models/Chats";
+import { s3TrabajoEnRevision } from "../services/trabajos.s3.service";
 
 const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 
@@ -388,21 +389,30 @@ async function processLead(email: string, business: string) {
             : null;
 
         if (phone) {
-            const botReply = "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
-
             const resumen = `Datos del cliente:\n\n📧 Correo: ${email}\n🏢 Negocio: ${business}\n💰 Oferta: ${botStatus.leadOffer ?? "Oferta no especificada"}\n🕒 Recibido: ${formatDate(new Date())}`;
 
+            //ÚLTIMO MENSAJE CLIENTE
             await saveMessage(phone, "user", resumen);
+            //S3 TRABAJOS
+            const newId = await s3TrabajoEnRevision({
+                email,
+                business,
+                phone: phone,
+                offer: botStatus.leadOffer ?? undefined,
+            });
+            //REDIS CONVERSACIÓN
             await finishConversation(phone, {
                 leadEmail: botStatus.leadEmail,
                 leadOffer: botStatus.leadOffer ?? "Oferta no especificada",
             });
 
             console.log("💾 Conversación finalizada en Redis:", phone);
-            return botReply;
+            return `Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻\nPuedes hacer seguimiento en: https://www.plataformas-web.cl/?workInProgress=${newId}`;
+
         }
 
         return "Listo! ✅📧 Te enviamos un correo y te contactaremos 👨‍💻";
+
     } catch (e) {
         console.error("📧 Error al enviar correo o guardar conversación", e);
         return "⚠️ Hubo un problema al registrar tus datos. Intenta nuevamente.";
