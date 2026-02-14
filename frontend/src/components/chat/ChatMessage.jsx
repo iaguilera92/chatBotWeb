@@ -14,10 +14,9 @@ export default function ChatMessage({ from, text, image, video, status, timestam
 
     const isUser = from === "user";
     const safeText = text ?? "";
-    const isLongText = safeText.length > 12;
-    if (!safeText.trim() && !image) return null;
+    const { cleanText, links } = extractLinks(safeText);
 
-
+    if (!cleanText && links.length === 0 && !image && !video) return null;
 
     const renderStatusIcon = () => {
         if (!isUser) return null;
@@ -26,6 +25,16 @@ export default function ChatMessage({ from, text, image, video, status, timestam
         if (status === "seen") return <DoneAllIcon sx={{ fontSize: 14, color: "#53bdeb" }} />;
         return null;
     };
+
+    function extractLinks(text) {
+        if (!text) return { cleanText: "", links: [] };
+
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+        const links = text.match(urlRegex) || [];
+        const cleanText = text.replace(urlRegex, "").trim();
+
+        return { cleanText, links };
+    }
 
     return (
         <Box
@@ -69,11 +78,15 @@ export default function ChatMessage({ from, text, image, video, status, timestam
                     minWidth: 120,
                     px: 1.5,
                     pt: 1,
-                    pb: image ? 2.8 : isLongText ? 2.6 : 1.2,
-                    pr: 7.6,
+                    pb: image || video
+                        ? 2.8
+                        : (cleanText || links.length > 0)
+                            ? 2.6
+                            : 1.2,
+                    pr: isUser ? 7.6 : 6,
                     borderRadius: 2,
-                    backgroundColor: image && !safeText ? "transparent" : isUser ? "#E0FBFF" : "#fff",
-                    boxShadow: image && !safeText ? "none" : "0 1px 1px rgba(0,0,0,0.1)",
+                    backgroundColor: image && !cleanText ? "transparent" : isUser ? "#E0FBFF" : "#fff",
+                    boxShadow: image && !cleanText ? "none" : "0 1px 1px rgba(0,0,0,0.1)",
                     position: "relative",
                     minHeight: 32
                 }}
@@ -81,17 +94,46 @@ export default function ChatMessage({ from, text, image, video, status, timestam
 
 
 
-                {/* Texto */}
-                <Typography
-                    variant="body2"
-                    sx={{
-                        lineHeight: 1.35,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word"
-                    }}
-                >
-                    {safeText}
-                </Typography>
+                {cleanText && (
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            lineHeight: 1.35,
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word"
+                        }}
+                    >
+                        {cleanText}
+                    </Typography>
+                )}
+
+                {links.map((link, index) => {
+                    const formattedLink = link.startsWith("http")
+                        ? link
+                        : `https://${link}`;
+
+                    return (
+                        <Typography
+                            key={index}
+                            variant="body2"
+                            component="a"
+                            href={formattedLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                                display: "block",
+                                mt: cleanText ? 1 : 0,
+                                color: "#0b93f6",
+                                textDecoration: "underline",
+                                wordBreak: "break-word",
+                                cursor: "pointer"
+                            }}
+                        >
+                            {link}
+                        </Typography>
+                    );
+                })}
+
 
                 {image && (
                     <Box
