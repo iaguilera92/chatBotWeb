@@ -558,10 +558,13 @@ export default function PanelHumano() {
 
         <Box
             sx={{
-                minHeight: "100vh",
+                height: "100dvh",   // 🔥 mejor que 100vh en mobile
                 width: "100%",
                 position: "relative",
-
+                display: "flex",        // 👈 FALTABA ESTO
+                flexDirection: "column",// 👈 FALTABA ESTO
+                overflowX: "hidden",
+                backgroundColor: "#f8fafc",
                 /* 🌤️ FONDO CLARO CON AZUL REAL + GRID AZUL ELEGANTE */
                 backgroundImage: `
       radial-gradient(
@@ -581,10 +584,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
       56px 56px
     `,
                 backgroundPosition: "center",
-                backgroundAttachment: "fixed",
-
-                backgroundColor: "#f8fafc",
-                overflow: "hidden",
+                overflowX: "hidden"
             }}
         >
 
@@ -814,7 +814,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                     </Box>
 
 
-                    <List sx={{ p: 1, overflowY: "auto", flex: 1, backdropFilter: "blur(4px)" }}>
+                    <List sx={{ p: 1, overflowY: "auto", paddingBottom: "45px", flex: 1, backdropFilter: "blur(4px)" }}>
                         {conversationsSorted.map((c) => {
                             const isHuman = c.mode === "human";
                             const selected = c.phone === activePhone;
@@ -1014,8 +1014,9 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                 {chat && (
                     <Box
                         sx={{
-                            width: "100%",            // 👈 ocupa todo el ancho
-                            height: "calc(100vh - 45px)", // 👈 altura del Toolbar
+                            width: "100%",
+                            flex: 1,
+                            minHeight: 0,
                             display: "flex",
                             flexDirection: "column",
                         }}
@@ -1549,7 +1550,7 @@ linear-gradient(90deg, rgba(29,78,216,.045) 1px, transparent 1px)
                                     borderRadius: 3,
                                     background: "linear-gradient(135deg, #1e3a8a, #1f2937)",
                                     boxShadow: "0 20px 40px rgba(0,0,0,.35)",
-                                    overflow: "hidden",
+                                    overflow: "auto",
                                     border: "1px solid rgba(59,130,246,.35)",
                                     "&::after": {
                                         content: '""',
