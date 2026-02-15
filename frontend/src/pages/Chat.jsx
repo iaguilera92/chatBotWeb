@@ -84,16 +84,34 @@ export default function Chat() {
 
             setIsTyping(false);
 
-            setMessages((prev) => [
-                ...prev,
-                ...replies.map((r) => ({
-                    from: "bot",
-                    text: r.text,
-                    image: r.image,
-                    video: r.video,
-                    timestamp: new Date(),
-                })),
-            ]);
+            setMessages((prev) => {
+                const newMessages = [...prev];
+
+                replies.forEach((r) => {
+                    const botText = r.text || "";
+
+                    // 1️⃣ Agregamos mensaje normal del bot
+                    newMessages.push({
+                        from: "bot",
+                        text: botText,
+                        image: r.image,
+                        video: r.video,
+                        timestamp: new Date(),
+                    });
+
+                    // 2️⃣ Detectamos la frase especial
+                    if (botText.toLowerCase().includes("james es el perrito")) {
+                        newMessages.push({
+                            from: "bot",
+                            video: "/james.mp4", // asegúrate que esté en /public
+                            timestamp: new Date(),
+                        });
+                    }
+                });
+
+                return newMessages;
+            });
+
         } catch (e) {
             setIsTyping(false);
             setMessages((prev) => [

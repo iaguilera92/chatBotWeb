@@ -21,6 +21,7 @@ export default function ChatContainer({ messages, isTyping }) {
                 overflowY: "auto",
                 px: 2,
                 py: 2,
+                pb: 6,
                 backgroundImage: `
   repeating-linear-gradient(
     90deg,
@@ -63,7 +64,7 @@ export default function ChatContainer({ messages, isTyping }) {
                 sx={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: 2.2, // separación entre cards
+                    gap: 0.5, // separación entre cards
                 }}
             >
                 {messages

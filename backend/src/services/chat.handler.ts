@@ -257,7 +257,7 @@ Si tienes cualquier problema, avísame.`;
 
         /* 🐶 Regla personal: James */
         if (text.toLowerCase() === "conoces a james?") {
-            return "🐶 James es el perrito de Ignacio Aguilera, leal, cariñoso y siempre presente ❤️.";
+            return "🐶 James es el perrito del Administrador, es mejor perro de todos, mamon y las mejores orejas ❤️.";
         }
 
         /* 🚫 Evitar reenvío si ya se confirmó lead */
