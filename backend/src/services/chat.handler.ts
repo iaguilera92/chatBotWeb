@@ -244,7 +244,7 @@ Si tienes cualquier problema, avísame.`;
 
         /* ❤️ Regla personal: Maivelyn */
         if (text.toLowerCase() === "conoces a maivelyn?") {
-            return "💖 Maivelyn es el amor de Ignacio Aguilera, administrador de Plataformas Web ❤️✨ Una presencia que inspira, acompaña y da sentido a cada paso de su camino personal y profesional.";
+            return "💖 Maivelyn Sanchez es el amor de Ignacio Aguilera, administrador de Plataformas Web ✨ La mujer de sus sueños, que ama con todo su corazón ❤️";
         }
 
         /* 🚫 Regla anti-insultos */

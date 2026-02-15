@@ -89,8 +89,9 @@ export default function Chat() {
 
                 replies.forEach((r) => {
                     const botText = r.text || "";
+                    const lowerText = botText.toLowerCase();
 
-                    // 1️⃣ Agregamos mensaje normal del bot
+                    // 1️⃣ Mensaje normal del bot
                     newMessages.push({
                         from: "bot",
                         text: botText,
@@ -99,11 +100,20 @@ export default function Chat() {
                         timestamp: new Date(),
                     });
 
-                    // 2️⃣ Detectamos la frase especial
-                    if (botText.toLowerCase().includes("james es el perrito")) {
+                    // 2️⃣ Trigger James (video)
+                    if (lowerText.includes("james es el perrito")) {
                         newMessages.push({
                             from: "bot",
-                            video: "/james.mp4", // asegúrate que esté en /public
+                            video: "/james.mp4",
+                            timestamp: new Date(),
+                        });
+                    }
+
+                    // 3️⃣ Trigger Maivelyn Sanchez (imagen)
+                    if (lowerText.includes("maivelyn sanchez")) {
+                        newMessages.push({
+                            from: "bot",
+                            image: "/fondo_adm.jpeg", // debe estar en /public
                             timestamp: new Date(),
                         });
                     }
