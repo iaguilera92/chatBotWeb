@@ -103,9 +103,17 @@ export default function ChatMessage({ from, text, image, video, status, timestam
                             wordBreak: "break-word"
                         }}
                     >
-                        {cleanText}
+                        {cleanText.split(/(\*[^*]+\*)/g).map((part, i) => {
+                            if (part.startsWith("*") && part.endsWith("*")) {
+                                // quitar los asteriscos y poner en negrita
+                                const boldText = part.slice(1, -1);
+                                return <strong key={i}>{boldText}</strong>;
+                            }
+                            return part;
+                        })}
                     </Typography>
                 )}
+
 
                 {links.map((link, index) => {
                     const formattedLink = link.startsWith("http")

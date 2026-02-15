@@ -1,7 +1,6 @@
 import { sendToAI } from "./groq.service";
 import { sendLeadEmail } from "./email.service";
 import { botStatus } from "../state/botStatus";
-import { redisSafe } from "../lib/redis";
 import { finishConversation, saveMessage } from "../services/conversations.store";
 import { OfferResumen, OffersText, capitalizeFirst, isFlowBreaking, insults, formatDate } from "../helpers/HelperChat";
 import { UiMessage } from "../models/Chats";
@@ -12,15 +11,15 @@ const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 // HANDLER PRINCIPAL
 export async function handleChat(messages: UiMessage[]): Promise<string> {
     try {
-        /* 🟢 Validación base */
 
+        /* Validación base */
         if (!messages || messages.length === 0) {
             return "💡 ¿En qué podemos ayudarte?";
         }
 
-        const lastUserMessage = [...messages]
-            .reverse()
-            .find(m => m.from === "user" && typeof m.text === "string");
+        //🟢 INICIO CONFIGURACIÓN BASE
+        //ÚLTIMO CHAT USER
+        const lastUserMessage = [...messages].reverse().find(m => m.from === "user" && typeof m.text === "string");
 
         if (!lastUserMessage || !lastUserMessage.text?.trim()) {
             return "💡 ¿En qué podemos ayudarte?";
@@ -74,7 +73,7 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                                     ? "lead_sent"
                                     : "idle";
 
-
+        //FIN CONFIGURACIÓN BASE
 
         /* 🔁 REENVÍO DE CORREO (PRIORIDAD MÁXIMA) */
         const wantsResend =
@@ -104,33 +103,66 @@ Si tienes cualquier problema, avísame.`;
             return "Perfecto 👍, lo esperamos ⏸️";
         }
 
-        /* 👋 1) SALUDO EXACTO */
-        const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
-
-        if (isGreeting) {
-            if (phase === "idle") {
-                botStatus.phase = "waiting_offer_intro";
-                return "Hola 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
-            } else {
-                // Saludo mientras hay un flujo activo
-                return "😊 ¡Bienvenido de nuevo! ¿Quieres continuar viendo las ofertas de hoy?";
-            }
-        }
-
-
         if (phase === "lead_sent") {
             return "✅ Ya tenemos tus datos. Te contactaremos pronto 👨‍💻";
         }
 
-        /* ✅ 2) RESPUESTA AFIRMATIVA → LISTADO DE OFERTAS (HARDCODED) */
-        const isAffirmative =
-            /\b(si|sí|ok|dale|claro|bueno|ya|perfecto)\b/i.test(text);
+        // 🚫 NEGATIVAS DEL USUARIO
+        const isNegative = /\b(no|no gracias|mejor no|prefiero otra|no me convence)\b/i.test(text);
 
-        if (isAffirmative && phase === "waiting_offer_intro") {
-            botStatus.leadErrors = 0;
-            botStatus.phase = "waiting_offer_selection";
-            return OfferResumen;
+        if (isNegative) {
+            botStatus.negativeResponses = (botStatus.negativeResponses ?? 0) + 1;
+
+            if (botStatus.negativeResponses >= 2) {
+                botStatus.negativeResponses = 0;
+                botStatus.phase = "waiting_offer_intro"; // ⚡ segunda negativa → fase correcta
+
+                return "😅 Entiendo, no queremos molestarte.\n¿Aún quieres ver las ofertas o prefieres continuar más tarde?";
+            }
+
+            // Primera negativa
+            if (botStatus.phase === "waiting_confirmation") {
+                botStatus.leadOffer = null;
+                botStatus.phase = "waiting_offer_selection";
+                return "👌 Sin problema. ¿Prefieres la *Oferta 1* o la *Oferta 2*?";
+            }
+
+            if (botStatus.phase !== "waiting_offer_intro") {
+                botStatus.phase = "waiting_offer_intro"; // ⚡ asegurar fase correcta
+            }
+
+            return "🙂 Está bien, no hay problema. ¿Quieres que veamos las ofertas más tarde?";
         }
+
+        /* ✅ RESPUESTA AFIRMATIVA → LISTADO DE OFERTAS (HARDCODED) */
+        const isAffirmative = /\b(si|sí|ok|dale|claro|bueno|ya|perfecto)\b/i.test(text);
+
+        // ⚡ Si el bot estaba esperando INTRO y el usuario responde afirmativamente
+        if (isAffirmative && phase === "waiting_offer_intro") {
+            botStatus.phase = "waiting_offer_selection"; // actualizar fase real
+            botStatus.negativeResponses = 0;
+            botStatus.leadErrors = 0;
+            return OfferResumen; // mostrar ofertas
+        }
+
+        // 🔹 2) Saludo
+        const isGreeting = /^(hola|buenas|hey|holi|hello)$/i.test(text);
+
+        if (isGreeting) {
+            if (phase === "idle") {
+                botStatus.phase = "waiting_offer_intro"; // iniciar fase
+                return "¡Hola! 🙋‍♂️\n¿Te gustaría ver las ofertas de hoy?";
+            } else {
+                // ⚡ Ya hay flujo activo → evitar repetir saludo
+                return "😊 ¡Bienvenido de nuevo! ¿Quieres continuar viendo las ofertas de hoy?";
+            }
+        }
+
+        // 🔹 3) Saludo mientras hay flujo activo
+        if (isGreeting && botStatus.phase !== "idle") {
+            return "😊 ¡Bienvenido de nuevo! ¿Quieres continuar viendo las ofertas de hoy?";
+        }
+
 
         /* 🎯 3) SELECCIÓN DE OFERTA → DETALLE (HARDCODED) */
         const normalized = text.replace(/\s+/g, " ");
@@ -206,8 +238,8 @@ Si tienes cualquier problema, avísame.`;
         ) {
             botStatus.phase = "waiting_lead";
             return `Perfecto 😊 para continuar, por favor indícame:
-1) Tu correo electrónico
-2) Nombre del negocio o emprendimiento`;
+*1) Tu correo electrónico*
+*2) Nombre del negocio o emprendimiento*`;
         }
 
         /* ❤️ Regla personal: Maivelyn */
@@ -313,9 +345,14 @@ Si tienes cualquier problema, avísame.`;
             return "🤖 (modo demo) Gracias por tu mensaje.";
         }
 
-        const flowBroken =
-            isFlowBreaking(text) &&
-            !["waiting_offer_selection", "waiting_confirmation", "waiting_lead"].includes(phase);
+        //FLUJO ROTO - CLIENTE PREGUNTO CON OTRA INTENSIÓN
+        const shouldIgnoreFlowBroken =
+            isGreeting ||                          // saludo
+            /lo siento|perd[oó]n|disculpa/i.test(text) || // disculpas
+            wantsResend ||                          // reenvío de correo
+            ["waiting_offer_selection", "waiting_confirmation", "waiting_lead", "waiting_business"].includes(phase);
+
+        const flowBroken = !shouldIgnoreFlowBroken && isFlowBreaking(text);
 
         /* ❌ RECHAZO DE OFERTA EN CONFIRMACIÓN */
         if (
@@ -347,6 +384,8 @@ Si tienes cualquier problema, avísame.`;
             return "🙂 Para continuar, dime qué opción prefieres:\n*1* Pago único\n*2* Suscripción mensual";
         }
 
+
+        //RESPUESTA DE PWBot
         return await sendToAI(
             [{ role: "user", content: text }],
             {

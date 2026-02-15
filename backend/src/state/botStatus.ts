@@ -24,5 +24,7 @@ export const botStatus = {
 
     // 💬 HISTORIAL DE MENSAJES
     messages: [] as { from: "user" | "bot"; text: string; timestamp: Date }[],
-};
 
+    // 🔴 NUEVO: contador de negativas
+    negativeResponses: 0,
+};
