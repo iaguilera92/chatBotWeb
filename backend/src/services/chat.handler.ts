@@ -334,7 +334,7 @@ async function processLead(email: string, business: string) {
             });
 
             console.log("💾 Conversación finalizada en Redis:", phone);
-            return `Listo! ✅ Te enviamos un *correo* y nuestro equipo se pondrá en *contacto* contigo👨‍💻\nPuedes hacer *seguimiento* de tu solicitud aquí: https://www.plataformas-web.cl/?workInProgress=${newId}`;
+            return `Listo! ✅ Te enviamos un *correo* y nuestro equipo se pondrá en contacto contigo👨‍💻\nPuedes hacer *seguimiento* de tu solicitud aquí: https://www.plataformas-web.cl/?workInProgress=${newId}`;
 
         }
 
