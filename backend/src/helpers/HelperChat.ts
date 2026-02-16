@@ -1,5 +1,7 @@
 // RESUMEN OFERTAS
-export const OfferResumen = `*Oferta 1: Pago único*
+export const OfferResumen = `(❌ Precio Mercado: $300.000 CLP)
+
+*Oferta 1: Pago único*
 💰 Reserva inicial: $29.990 CLP
 💵 Pago final: $70.000 CLP
 🧾 Inversión total: $99.990 CLP
