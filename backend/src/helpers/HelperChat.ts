@@ -104,12 +104,6 @@ export const insults = [
 ];
 
 //METODOS
-export function isFlowBreaking(text: string) {
-    return !(
-        /^(si|sí|no|ok|dale|1|2|confirmo|confirmar)$/i.test(text) ||
-        /^[^\s@]+@[^\s@]+\.[^\s@]+/.test(text)
-    );
-}
 export function capitalizeFirst(text: string) {
     if (!text) return "";
     text = text.trim();
@@ -128,4 +122,33 @@ export function formatDate(date: Date) {
     hours = hours ? hours : 12; // convertir 0 => 12
 
     return `${day}/${month}/${year} ${hours}:${minutes}${ampm}`;
+}
+//INSULTOS
+export function checkInsults(textRaw: string): string | null {
+    const insultMatch = textRaw.match(new RegExp(`\\b(${insults.join("|")})\\b`, "i"));
+    if (insultMatch) {
+        return `😐 ¿Cómo que "${insultMatch[0]}"?`;
+    }
+    return null;
+}
+//MENSAJES DIRECTOS
+export function checkExactResponses(textRaw: string): string | null {
+    const textLower = textRaw.toLowerCase();
+
+    if (textLower === "conoces a maivelyn?") {
+        return "💖 Maivelyn Sanchez es el amor de Ignacio Aguilera, administrador de Plataformas Web ✨ La mujer de sus sueños, que ama con todo su corazón ❤️";
+    }
+
+    if (textLower === "conoces a james?") {
+        return "🐶 James es el perrito del Administrador, es mejor perro de todos, mamon y las mejores orejas ❤️.";
+    }
+
+    return null;
+}
+export async function checkClientInHistory(phone: string): Promise<boolean> {
+    // Aquí revisas tu Redis, S3, DB, etc.
+    // Devuelve true si ya existe, false si no
+    // Por ahora simulamos:
+    const existingClients = ["+56992914526", "+56987654321"];
+    return existingClients.includes(phone);
 }

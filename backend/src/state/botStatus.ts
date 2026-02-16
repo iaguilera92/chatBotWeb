@@ -1,30 +1,45 @@
 export type BotPhase =
-    | "idle"
-    | "waiting_offer_intro"
-    | "waiting_offer_selection"
-    | "waiting_confirmation"
-    | "waiting_lead"
-    | "waiting_business"
-    | "lead_sent";
+    | "OFFER_INTRO"
+    | "OFFER_SELECTION"
+    | "OFFER_CONFIRMATION"
+    | "LEAD_EMAIL_CAPTURE"
+    | "LEAD_BUSINESS_CAPTURE"
+    | "LEAD_COMPLETED"
+    | "EXISTING_CLIENT";;
 
 export const botStatus = {
     enabled: true,
     disabledAt: null as Date | null,
     reason: null as string | null,
 
-    // 🧠 ESTADO DEL FLUJO
-    phase: "idle" as BotPhase,
+    // 🧠 FASE ACTUAL DEL FLUJO
+    phase: "OFFER_INTRO" as BotPhase,
 
     // 📧 DATOS DEL LEAD
     leadEmailSent: false,
     leadEmail: null as string | null,
     leadOffer: null as string | null,
+    leadBusinessName: null as string | null,
     leadRegisteredAt: null as Date | null,
     leadErrors: 0,
 
-    // 💬 HISTORIAL DE MENSAJES
-    messages: [] as { from: "user" | "bot"; text: string; timestamp: Date }[],
+    // 🔗 LINK DE SEGUIMIENTO DEL LEAD
+    workInProgressId: null as string | null,
 
-    // 🔴 NUEVO: contador de negativas
+    // 💬 HISTORIAL DE MENSAJES
+    messages: [] as {
+        from: "user" | "bot";
+        text: string;
+        timestamp: Date
+    }[],
+
+    // 🔴 CONTROL DE NEGATIVAS
     negativeResponses: 0,
+
+    // 🔄 CONTROL DE RESET
+    resets: 0,
+
+    // 👥 CLIENTE EXISTENTE
+    existingClient: false,  // si es cliente habitual detectado
+    clientPhone: null as string | null, // teléfono detectado
 };
