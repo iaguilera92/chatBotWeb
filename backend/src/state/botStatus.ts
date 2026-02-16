@@ -41,5 +41,7 @@ export const botStatus = {
 
     // 👥 CLIENTE EXISTENTE
     existingClient: false,  // si es cliente habitual detectado
+    waitingMessageStep: 0,
+    skipExistingClient: false,
     clientPhone: null as string | null, // teléfono detectado
 };

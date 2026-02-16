@@ -27,16 +27,23 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
 
 
         //DETECTAR SI YA ES CLIENTE
-        const userPhone = null;
+        /*const userPhone = "+56992914526";
         let clientInHistory = false;
-        if (userPhone) {
-            clientInHistory = await checkClientInHistory(userPhone);
-            if (clientInHistory) {
-                botStatus.phase = "EXISTING_CLIENT";
-                botStatus.clientPhone = userPhone;
-            }
-        }
 
+        //if (userPhone === "+56992914526") {
+        if (userPhone === "+56992914526") {
+            clientInHistory = true;
+        } else if (userPhone) {
+            clientInHistory = await checkClientInHistory(userPhone);
+        }*/
+
+        // ⚡ Solo marcar EXISTING_CLIENT si no hemos enviado los mensajes de espera
+        /*if (clientInHistory && botStatus.waitingMessageStep === 0 && !botStatus.skipExistingClient) {
+            botStatus.phase = "EXISTING_CLIENT";
+            botStatus.clientPhone = userPhone;
+        }*/
+
+        //TEXTO ESCRITO POR EL CLIENTE
         const textRaw = lastUserMessage.text.trim();
         const text = textRaw.toLowerCase();
         // 🔥 Limpiar emojis y caracteres especiales
@@ -64,8 +71,6 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             botStatus.leadErrors = 0;
         };
         //SI RESETEO Y EMPIEZA DE NUEVO
-        const justCompletedLead = botStatus.phase === "OFFER_INTRO" && botStatus.resets > 0;
-
         const handleFlowBroken = async () => {
             const aiResponse = await sendToAI(
                 [{ role: "user", content: textRaw }],
@@ -97,20 +102,39 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             case "EXISTING_CLIENT":
                 // SALUDO inicial
                 if (isGreeting) {
-                    return "¡Hola de nuevo! 🙋‍♂️ Veo que ya eres cliente de nuestra plataforma.";
+                    return "¡Hola de nuevo! 🙋‍♂️ Veo que ya eres cliente de nuestra plataforma.\n*¿Quieres hablar con un analista?*";
                 }
 
-                // Preguntar si quiere hablar con un analista
-                if (isAffirmative) {
-                    resetToIntro(); // opcional, si quieres reiniciar el flujo tras avisar
-                    return "Perfecto 😊, te conectaremos directamente con un *analista* para atender tu solicitud.";
-                }
-
+                // NEGATIVA / CANCELA
                 if (isNegative) {
-                    return "🙂 Está bien. Si quieres hablar con un analista más tarde, solo escribe *sí*.";
+                    botStatus.waitingMessageStep = 0;
+                    botStatus.phase = "OFFER_INTRO";  // volver al flujo normal
+                    botStatus.skipExistingClient = true; // evitar que vuelva a EXISTING_CLIENT este ciclo
+                    return "🙂 Perfecto. Mientras tanto, puedes descubrir nuestras *ofertas de hoy*. ¿Quieres que te las muestre?";
                 }
 
+
+                // CONFIRMA O AFIRMA
+                if (isConfirmation || isAffirmative) {
+                    if (botStatus.waitingMessageStep === 0) {
+                        botStatus.waitingMessageStep = 1;
+                        return "Perfecto 😊 Un *analista* se pondrá en contacto contigo pronto.";
+                    } else if (botStatus.waitingMessageStep === 1) {
+                        botStatus.waitingMessageStep = 0;
+                        botStatus.phase = "OFFER_INTRO"; // volvemos al flujo normal
+                        return "Por favor, espéranos un momento, te contactaremos en breve...\n\n👉 Mientras tanto, ¿quieres ver las ofertas de hoy?";
+                    }
+                }
+
+                // Si ya estamos en el paso de espera y el usuario responde otra cosa
+                if (botStatus.waitingMessageStep === 1) {
+                    return "🙂 Mientras tanto, puedes consultar nuestras ofertas o preguntarme lo que necesites.";
+                }
+
+                // Cualquier otra cosa fuera del flujo
                 return await handleFlowBroken();
+
+
             // =====================================================
             case "OFFER_INTRO":
 
