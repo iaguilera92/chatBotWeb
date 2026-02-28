@@ -48,19 +48,23 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
         const text = textRaw.toLowerCase();
         // 🔥 Limpiar emojis y caracteres especiales
         const textClean = text.replace(/[^\w\sáéíóúñ]/gi, "").trim();
+        const normalized = textClean
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, ""); // elimina tildes
 
         //AFIRMACIÓN
-        const isAffirmative = /\b(si|sí|ok|dale|claro|perfecto|bueno|de acuerdo|vamos|por supuesto|obvio|vale|listo)\b/i.test(textClean);
+        const isAffirmative = /\b(si|ok|dale|claro|perfecto|bueno|de acuerdo|vamos|por supuesto|obvio|vale|listo)\b/.test(normalized);
         //NEGATIVA
         const negativeKeywords = ["no", "no gracias", "prefiero no", "mejor no", "ninguna", "ninguno", "ninguna de las dos", "paso", "nop", "no quiero", "no me interesa", "no me gusto", "no me gustó"];
-        const isNegative = negativeKeywords.some(keyword => textClean.includes(keyword));
+        const isNegative = negativeKeywords.some(keyword =>
+            normalized === keyword || normalized.startsWith(keyword + " ")
+        );
         //SALUDO
         const greetingKeywords = ["hola", "holi", "buenas", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hey", "hi", "hello", "qué tal", "que tal", "saludos"];
-        const isGreeting = greetingKeywords.some(keyword => textClean.includes(keyword));
+        const isGreeting = greetingKeywords.some(keyword => normalized.includes(keyword));
         //CONFIRMAR
-        const isConfirmation = /\b(confirmo|confirmar|sí, confirmo|sí confirmo|ok, confirmo|dale, confirmo)\b/i.test(textClean);
-
-
+        const isConfirmation = /\bconfirm(o|ar|ado)\b/.test(normalized) || /\b(si|ok|dale|perfecto|vale)\b.*\bconfirmo\b/.test(normalized);
         //RESET FLUJO
         const resetToIntro = () => {
             botStatus.phase = "OFFER_INTRO";
@@ -156,8 +160,8 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             // =====================================================
             case "OFFER_SELECTION":
 
-                const isOffer1 = /\b1\b/.test(textClean) || /oferta\s*1/.test(textClean);
-                const isOffer2 = /\b2\b/.test(textClean) || /oferta\s*2/.test(textClean);
+                const isOffer1 = /\b1\b/.test(normalized) || /oferta\s*1/.test(normalized);
+                const isOffer2 = /\b2\b/.test(normalized) || /oferta\s*2/.test(normalized);
 
                 if (isOffer1) {
                     botStatus.leadOffer = "Oferta 1 - Pago único";
@@ -176,7 +180,7 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
                 }
 
                 // 🟡 INVALID INPUT (pero sigue dentro del flujo)
-                const containsNumber = /\b\d+\b/.test(textClean);
+                const containsNumber = /\b\d+\b/.test(normalized);
                 if (containsNumber) {
                     return "🤔 Solo tenemos la *Oferta 1* o la *Oferta 2*.\n¿Cuál prefieres?";
                 }
@@ -188,7 +192,7 @@ export async function handleChat(messages: UiMessage[]): Promise<string> {
             case "OFFER_CONFIRMATION":
 
                 //VALIDAR CONFIRMACIÓN
-                if ((isConfirmation || isAffirmative) && botStatus.leadOffer) {
+                if (isConfirmation || isAffirmative) {
                     botStatus.phase = "LEAD_EMAIL_CAPTURE";
                     return "Perfecto 😊 indícanos tu *correo electrónico* para generar tu solicitud.";
                 }
