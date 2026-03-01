@@ -1,5 +1,5 @@
 // RESUMEN OFERTAS
-export const OfferResumen = `(❌ Precio Mercado: $300.000 CLP)
+export const OfferResumen = `(❌Precio Mercado:$300.000)
 
 *Oferta 1: Pago único*
 💰 Reserva inicial: $29.990 CLP

@@ -12,6 +12,7 @@ type UiMessage = {
 };
 
 type ChatBody = {
+    sessionId: string;
     messages: UiMessage[];
 };
 
@@ -21,9 +22,9 @@ export async function chatRoutes(app: FastifyInstance) {
         "/api/chat",
         async (request: FastifyRequest<{ Body: ChatBody }>, reply) => {
             try {
-                const { messages } = request.body;
+                const { sessionId, messages } = request.body;
 
-                const text = await handleChat(messages);
+                const text = await handleChat(sessionId, messages);
 
                 return {
                     replies: [{ text }],

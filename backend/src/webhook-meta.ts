@@ -62,10 +62,13 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
             console.log(`[Webhook][${env}] 🗂️ Conversación completa:`, convo);
 
             // Llamamos al bot
-            const botReply = await handleChat(convo.messages.map(m => ({
-                from: m.from === "bot" ? "bot" : "user",
-                text: m.text,
-            })));
+            const botReply = await handleChat(
+                from, // 👈 sessionId
+                convo.messages.map(m => ({
+                    from: m.from === "bot" ? "bot" : "user",
+                    text: m.text,
+                }))
+            );
 
             console.log(`[Webhook][${env}] 🤖 Respuesta del bot:`, botReply);
 
