@@ -4,12 +4,13 @@ import { handleChat } from "./services/chat.handler";
 export function whatsappTwilioWebhook(app: FastifyInstance) {
     app.post("/webhook/whatsapp", async (req: any, reply) => {
         const text = req.body.Body;
+        const sessionId = req.body.From; // 🔥 clave
 
         const messages = [
             { from: "user" as const, text },
         ];
 
-        const responseText = await handleChat(messages);
+        const responseText = await handleChat(sessionId, messages);
 
         reply
             .type("application/xml")
