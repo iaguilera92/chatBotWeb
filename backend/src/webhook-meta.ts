@@ -67,7 +67,8 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 convo.messages.map(m => ({
                     from: m.from === "bot" ? "bot" : "user",
                     text: m.text,
-                }))
+                })),
+                false
             );
 
             console.log(`[Webhook][${env}] 🤖 Respuesta del bot:`, botReply);
@@ -92,3 +93,4 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
         }
     });
 }
+

@@ -14,6 +14,7 @@ type UiMessage = {
 type ChatBody = {
     sessionId: string;
     messages: UiMessage[];
+    desdeSitioWeb?: boolean;
 };
 
 
@@ -22,9 +23,9 @@ export async function chatRoutes(app: FastifyInstance) {
         "/api/chat",
         async (request: FastifyRequest<{ Body: ChatBody }>, reply) => {
             try {
-                const { sessionId, messages } = request.body;
+                const { sessionId, messages, desdeSitioWeb } = request.body;
 
-                const text = await handleChat(sessionId, messages);
+                const text = await handleChat(sessionId, messages, desdeSitioWeb);
 
                 return {
                     replies: [{ text }],

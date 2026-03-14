@@ -10,7 +10,7 @@ export function whatsappTwilioWebhook(app: FastifyInstance) {
             { from: "user" as const, text },
         ];
 
-        const responseText = await handleChat(sessionId, messages);
+        const responseText = await handleChat(sessionId, messages, false);
 
         reply
             .type("application/xml")

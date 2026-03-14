@@ -1,4 +1,4 @@
-import { sendToAI } from "./groq.service";
+﻿import { sendToAI } from "./groq.service";
 import { sendLeadEmail } from "./email.service";
 import { finishConversation, saveMessage } from "../services/conversations.store";
 import { OfferResumen, OffersText, capitalizeFirst, checkInsults, formatDate, checkExactResponses } from "../helpers/HelperChat";
@@ -12,7 +12,8 @@ const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 // ================= HANDLER PRINCIPAL =================
 export async function handleChat(
     sessionId: string,
-    messages: UiMessage[]
+    messages: UiMessage[],
+    desdeSitioWeb: boolean = false
 ): Promise<string> {
 
     try {
@@ -20,6 +21,10 @@ export async function handleChat(
         const botStatus = await getBotStatus(sessionId);
         console.log("------HANDLE CHAT------");
         console.log("FASE ACTUAL:", botStatus.phase);
+        console.log("DESDE SITIO WEB:", desdeSitioWeb);
+        if (desdeSitioWeb && botStatus.phase === "OFFER_INTRO") {
+            botStatus.phase = "OFFER_SELECTION";
+        }
 
         const lastUserMessage = [...messages]
             .reverse()
@@ -76,7 +81,19 @@ export async function handleChat(
             botStatus.workInProgressId = null;
         };
 
+        if (isGreeting && botStatus.phase !== "OFFER_INTRO") {
+            resetToIntro();
+            await saveBotStatus(sessionId, botStatus);
+            return "¡Hola! 🙋‍♂️ ¿Te gustaría ver las ofertas de hoy?";
+        }
+
         const handleFlowBroken = async () => {
+            if (isGreeting) {
+                resetToIntro();
+                await saveBotStatus(sessionId, botStatus);
+                return "¡Hola! 🙋‍♂️ ¿Te gustaría ver las ofertas de hoy?";
+            }
+
             const aiResponse = await sendToAI(
                 [{ role: "user", content: textRaw }],
                 { intent: "out_of_flow" }
