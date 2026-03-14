@@ -141,6 +141,11 @@ export async function handleChat(
                 const isOffer1 = /\b1\b/.test(normalized) || /oferta\s*1/.test(normalized);
                 const isOffer2 = /\b2\b/.test(normalized) || /oferta\s*2/.test(normalized);
 
+                if (isAffirmative) {
+                    response = OfferResumen;
+                    break;
+                }
+
                 if (isOffer1) {
                     botStatus.leadOffer = "Oferta 1 - Pago único";
                     botStatus.phase = "OFFER_CONFIRMATION";
