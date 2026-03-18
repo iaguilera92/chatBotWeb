@@ -13,8 +13,7 @@ const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 export async function handleChat(
     sessionId: string,
     messages: UiMessage[],
-    desdeSitioWeb: boolean = false,
-    phase?: BotPhase
+    desdeSitioWeb: boolean = false
 ): Promise<{ text: string; phase: BotPhase }> {
 
     try {
@@ -23,15 +22,10 @@ export async function handleChat(
         console.log("------HANDLE CHAT------");
         console.log("FASE ACTUAL:", botStatus.phase);
         console.log("DESDE SITIO WEB:", desdeSitioWeb);
-        console.log("PHASE RECIBIDA:", phase);
-        if (phase) {
-            botStatus.phase = phase;
-        }
         if (desdeSitioWeb && botStatus.phase === "OFFER_INTRO") {
             botStatus.phase = "OFFER_SELECTION";
         }
         await saveBotStatus(sessionId, botStatus);
-        console.log("PHASE DESPUÉS DEL FORCE:", botStatus.phase);
 
         const lastUserMessage = [...messages]
             .reverse()
@@ -124,7 +118,6 @@ export async function handleChat(
 
         let response = "";
 
-        console.log("PHASE USADA EN SWITCH:", botStatus.phase);
         switch (botStatus.phase) {
 
             case "OFFER_INTRO":

@@ -1,6 +1,5 @@
 import { FastifyInstance, FastifyRequest } from "fastify";
 import { handleChat } from "../services/chat.handler";
-import { BotPhase } from "../state/botStatus.types";
 
 
 type UiMessage = {
@@ -16,7 +15,6 @@ type ChatBody = {
     sessionId: string;
     messages: UiMessage[];
     desdeSitioWeb?: boolean;
-    phase?: BotPhase;
 };
 
 
@@ -25,9 +23,9 @@ export async function chatRoutes(app: FastifyInstance) {
         "/api/chat",
         async (request: FastifyRequest<{ Body: ChatBody }>, reply) => {
             try {
-                const { sessionId, messages, desdeSitioWeb, phase } = request.body;
+                const { sessionId, messages, desdeSitioWeb } = request.body;
 
-                const result = await handleChat(sessionId, messages, desdeSitioWeb, phase);
+                const result = await handleChat(sessionId, messages, desdeSitioWeb);
 
                 return {
                     phase: result.phase,
