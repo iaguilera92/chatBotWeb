@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import DoneIcon from "@mui/icons-material/Done";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 
@@ -10,7 +10,16 @@ function formatTime(date) {
     });
 }
 
-export default function ChatMessage({ from, text, image, video, status, timestamp }) {
+export default function ChatMessage({
+    from,
+    text,
+    image,
+    video,
+    status,
+    timestamp,
+    quickReplies = [],
+    onQuickReply,
+}) {
 
     const isUser = from === "user";
     const safeText = text ?? "";
@@ -172,6 +181,36 @@ export default function ChatMessage({ from, text, image, video, status, timestam
                             mt: text || image ? 1 : 0.5
                         }}
                     />
+                )}
+
+                {!isUser && quickReplies.length > 0 && (
+                    <Box
+                        sx={{
+                            mt: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.8,
+                            width: "100%",
+                        }}
+                    >
+                        {quickReplies.map((qr, idx) => (
+                            <Button
+                                key={`${qr.value}-${idx}`}
+                                variant="contained"
+                                fullWidth
+                                size="small"
+                                onClick={() => onQuickReply?.(qr.value)}
+                                sx={{
+                                    textTransform: "none",
+                                    fontWeight: 600,
+                                    backgroundColor: "#1b6f8a",
+                                    "&:hover": { backgroundColor: "#155a70" },
+                                }}
+                            >
+                                {qr.label}
+                            </Button>
+                        ))}
+                    </Box>
                 )}
 
                 {/* Hora + checks */}

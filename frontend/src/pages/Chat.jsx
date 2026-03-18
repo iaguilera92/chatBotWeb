@@ -299,7 +299,11 @@ export default function Chat() {
 
 
                 {/* 👇 Este debe ocupar el espacio sobrante */}
-                <ChatContainer messages={messages} isTyping={isTyping} />
+                <ChatContainer
+                    messages={messages}
+                    isTyping={isTyping}
+                    onQuickReply={(value) => handleSend(value)}
+                />
 
                 {/* 👇 Este debe quedar pegado abajo */}
                 <ChatInput onSend={handleSend} />

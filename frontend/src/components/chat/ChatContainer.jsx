@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import ChatMessage from "./ChatMessage";
 import TypingIndicator from "./TypingIndicator";
 
-export default function ChatContainer({ messages, isTyping }) {
+export default function ChatContainer({ messages, isTyping, onQuickReply }) {
     const bottomRef = useRef(null);
 
     useEffect(() => {
@@ -83,6 +83,25 @@ export default function ChatContainer({ messages, isTyping }) {
                             video={msg.video}
                             status={msg.status}
                             timestamp={msg.timestamp}
+                            quickReplies={
+                                Array.isArray(msg.quickReplies) && msg.quickReplies.length > 0
+                                    ? msg.quickReplies.map((qr) =>
+                                        typeof qr === "string"
+                                            ? { label: qr, value: qr }
+                                            : qr
+                                    )
+                                    : msg.from === "bot" &&
+                                      typeof msg.text === "string" &&
+                                      msg.text.includes("Oferta 1") &&
+                                      msg.text.includes("Oferta 2") &&
+                                      msg.text.includes("¿Cuál oferta te interesa")
+                                        ? [
+                                            { label: "Oferta 1", value: "Oferta 1" },
+                                            { label: "Oferta 2", value: "Oferta 2" },
+                                        ]
+                                        : []
+                            }
+                            onQuickReply={onQuickReply}
                         />
                     ))}
 

@@ -13,7 +13,8 @@ const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 export async function handleChat(
     sessionId: string,
     messages: UiMessage[],
-    desdeSitioWeb: boolean = false
+    desdeSitioWeb: boolean = false,
+    phase?: BotPhase
 ): Promise<string> {
 
     try {
@@ -22,6 +23,9 @@ export async function handleChat(
         console.log("------HANDLE CHAT------");
         console.log("FASE ACTUAL:", botStatus.phase);
         console.log("DESDE SITIO WEB:", desdeSitioWeb);
+        if (phase) {
+            botStatus.phase = phase;
+        }
         if (desdeSitioWeb && botStatus.phase === "OFFER_INTRO") {
             botStatus.phase = "OFFER_SELECTION";
         }
