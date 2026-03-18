@@ -23,6 +23,7 @@ export async function handleChat(
         console.log("------HANDLE CHAT------");
         console.log("FASE ACTUAL:", botStatus.phase);
         console.log("DESDE SITIO WEB:", desdeSitioWeb);
+        console.log("PHASE RECIBIDA:", phase);
         if (phase) {
             botStatus.phase = phase;
         }
@@ -30,6 +31,7 @@ export async function handleChat(
             botStatus.phase = "OFFER_SELECTION";
         }
         await saveBotStatus(sessionId, botStatus);
+        console.log("PHASE DESPUÉS DEL FORCE:", botStatus.phase);
 
         const lastUserMessage = [...messages]
             .reverse()
@@ -122,6 +124,7 @@ export async function handleChat(
 
         let response = "";
 
+        console.log("PHASE USADA EN SWITCH:", botStatus.phase);
         switch (botStatus.phase) {
 
             case "OFFER_INTRO":
