@@ -71,13 +71,13 @@ export function whatsappMetaWebhook(app: FastifyInstance) {
                 false
             );
 
-            console.log(`[Webhook][${env}] 🤖 Respuesta del bot:`, botReply);
+            console.log(`[Webhook][${env}] 🤖 Respuesta del bot:`, botReply.text);
 
-            if (botReply?.trim()) {
-                await saveMessage(from, "bot", botReply);
+            if (botReply?.text?.trim()) {
+                await saveMessage(from, "bot", botReply.text);
 
                 // 🔹 Enviar siempre, incluso en desarrollo
-                await sendWhatsAppMessage(from, botReply);
+                await sendWhatsAppMessage(from, botReply.text);
                 console.log(`[Webhook][${process.env.NODE_ENV || "development"}] ✅ Mensaje enviado a WhatsApp a:`, from);
             }
 

@@ -1,4 +1,4 @@
-// RESUMEN OFERTAS
+﻿// RESUMEN OFERTAS
 export const OfferResumen = `ℹ️Precio Mercado $300.000
 
 *Oferta 1: Pago único*
@@ -25,27 +25,30 @@ Pago final al entregar el sitio: $70.000 CLP
 ⏰ *Plazo de desarrollo*
 Entre 3 y 7 días, según complejidad y contenido.
 
-📦 *Incluye*
+📦 *Incluye:*
 - Desarrollo completo de sitio web profesional.
 - Diseño moderno y 100% responsivo.
 - Hosting seguro incluido.
-- Sitio web administrable con acceso seguro.
-- Entrega final del sitio listo para publicar.
+- SSL accesos seguros.
+- ⁠SEO Configurado.
 - Capacitación básica para administrar el sitio.
+- ⁠Creamos el sitio web contigo!
 
 📑 *Secciones incluidas*
 - Inicio
 - Datos del negocio
-- Servicios / precios
+- Servicios / Precios
 - Contadores
-- Evidencias / trabajos
+- Evidencias / Trabajos
 - Ubicación (mapa)
-- Contacto (formulario validado)
-- Integración WhatsApp y correo
+- Contacto (formulario)
+- ⁠Correos automáticos
+- WhatsApp y Redes sociales
 - Nosotros
-- Menú responsivo
 - Footer
+- Menú responsivo
 - Panel de administración estándar
+
 
 🧾 *Inversión total: $99.990 CLP*
 
@@ -154,3 +157,4 @@ export async function checkClientInHistory(phone: string): Promise<boolean> {
     const existingClients = ["+56992914526", "+56987654321"];
     return existingClients.includes(phone);
 }
+

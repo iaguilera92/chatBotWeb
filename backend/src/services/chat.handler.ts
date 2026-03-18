@@ -15,7 +15,7 @@ export async function handleChat(
     messages: UiMessage[],
     desdeSitioWeb: boolean = false,
     phase?: BotPhase
-): Promise<string> {
+): Promise<{ text: string; phase: BotPhase }> {
 
     try {
 
@@ -36,8 +36,12 @@ export async function handleChat(
 
         const lastMessage = messages[messages.length - 1];
 
-        if (!lastMessage || lastMessage.from !== "user") return "";
-        if (!lastUserMessage?.text?.trim()) return "¿Te gustaría ver las ofertas de hoy?";
+        if (!lastMessage || lastMessage.from !== "user") {
+            return { text: "", phase: botStatus.phase };
+        }
+        if (!lastUserMessage?.text?.trim()) {
+            return { text: "¿Te gustaría ver las ofertas de hoy?", phase: botStatus.phase };
+        }
 
         const textRaw = lastUserMessage.text.trim();
         const text = textRaw.toLowerCase();
@@ -88,7 +92,7 @@ export async function handleChat(
         if (isGreeting && botStatus.phase !== "OFFER_INTRO") {
             resetToIntro();
             await saveBotStatus(sessionId, botStatus);
-            return "¡Hola! 🙋‍♂️ ¿Te gustaría ver las ofertas de hoy?";
+            return { text: "¡Hola! 🙋‍♂️ ¿Te gustaría ver las ofertas de hoy?", phase: botStatus.phase };
         }
 
         const handleFlowBroken = async () => {
@@ -110,10 +114,10 @@ export async function handleChat(
         };
 
         const exactResponse = checkExactResponses(textRaw);
-        if (exactResponse) return exactResponse;
+        if (exactResponse) return { text: exactResponse, phase: botStatus.phase };
 
         const insultResponse = checkInsults(textRaw);
-        if (insultResponse) return insultResponse;
+        if (insultResponse) return { text: insultResponse, phase: botStatus.phase };
 
         let response = "";
 
@@ -137,7 +141,8 @@ export async function handleChat(
                     break;
                 }
 
-                return await handleFlowBroken();
+                response = await handleFlowBroken();
+                break;
 
 
             case "OFFER_SELECTION":
@@ -175,7 +180,8 @@ export async function handleChat(
                     break;
                 }
 
-                return await handleFlowBroken();
+                response = await handleFlowBroken();
+                break;
 
 
             case "OFFER_CONFIRMATION":
@@ -192,7 +198,8 @@ export async function handleChat(
                     break;
                 }
 
-                return await handleFlowBroken();
+                response = await handleFlowBroken();
+                break;
 
 
             case "LEAD_EMAIL_CAPTURE":
@@ -220,7 +227,8 @@ export async function handleChat(
                     break;
                 }
 
-                return await handleFlowBroken();
+                response = await handleFlowBroken();
+                break;
 
 
             case "LEAD_BUSINESS_CAPTURE":
@@ -254,7 +262,8 @@ export async function handleChat(
                     break;
                 }
 
-                return await handleFlowBroken();
+                response = await handleFlowBroken();
+                break;
 
 
             case "LEAD_COMPLETED":
@@ -283,11 +292,11 @@ export async function handleChat(
         }
 
         await saveBotStatus(sessionId, botStatus);
-        return response;
+        return { text: response, phase: botStatus.phase };
 
     } catch (err) {
         console.error("Error en handleChat:", err);
-        return "⚠️ El asistente tuvo un problema. Intenta nuevamente.";
+        return { text: "⚠️ El asistente tuvo un problema. Intenta nuevamente.", phase: "OFFER_INTRO" };
     }
 }
 

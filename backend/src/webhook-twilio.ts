@@ -10,13 +10,13 @@ export function whatsappTwilioWebhook(app: FastifyInstance) {
             { from: "user" as const, text },
         ];
 
-        const responseText = await handleChat(sessionId, messages, false);
+        const response = await handleChat(sessionId, messages, false);
 
         reply
             .type("application/xml")
             .send(`
         <Response>
-          <Message>${responseText}</Message>
+          <Message>${response.text}</Message>
         </Response>
       `);
     });

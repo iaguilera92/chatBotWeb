@@ -67,16 +67,21 @@ export default function ChatContainer({ messages, isTyping, onQuickReply }) {
                     gap: 0.5, // separación entre cards
                 }}
             >
-                {messages
-                    .filter(
-                        (msg) =>
-                            (typeof msg.text === "string" && msg.text.trim().length > 0) ||
-                            typeof msg.image === "string" ||
-                            typeof msg.video === "string"
-                    )
-                    .map((msg, i) => (
+                {(() => {
+                    const renderable = messages
+                        .map((msg, idx) => ({ msg, idx }))
+                        .filter(
+                            ({ msg }) =>
+                                (typeof msg.text === "string" && msg.text.trim().length > 0) ||
+                                typeof msg.image === "string" ||
+                                typeof msg.video === "string"
+                        );
+                    const lastRenderableIdx =
+                        renderable.length > 0 ? renderable[renderable.length - 1].idx : -1;
+
+                    return renderable.map(({ msg, idx }) => (
                         <ChatMessage
-                            key={i}
+                            key={idx}
                             from={msg.from}
                             text={msg.text}
                             image={msg.image}
@@ -84,13 +89,16 @@ export default function ChatContainer({ messages, isTyping, onQuickReply }) {
                             status={msg.status}
                             timestamp={msg.timestamp}
                             quickReplies={
-                                Array.isArray(msg.quickReplies) && msg.quickReplies.length > 0
+                                idx === lastRenderableIdx &&
+                                Array.isArray(msg.quickReplies) &&
+                                msg.quickReplies.length > 0
                                     ? msg.quickReplies.map((qr) =>
                                         typeof qr === "string"
-                                            ? { label: qr, value: qr }
-                                            : qr
+                                            ? { label: qr, value: qr, action: "send" }
+                                            : { action: "send", ...qr }
                                     )
-                                    : msg.from === "bot" &&
+                                    : idx === lastRenderableIdx &&
+                                      msg.from === "bot" &&
                                       typeof msg.text === "string" &&
                                       msg.text.includes("Oferta 1") &&
                                       msg.text.includes("Oferta 2") &&
@@ -103,7 +111,8 @@ export default function ChatContainer({ messages, isTyping, onQuickReply }) {
                             }
                             onQuickReply={onQuickReply}
                         />
-                    ))}
+                    ));
+                })()}
 
                 {isTyping && <TypingIndicator />}
             </Box>

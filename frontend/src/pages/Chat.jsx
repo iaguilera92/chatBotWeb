@@ -95,6 +95,11 @@ export default function Chat() {
             const replies = Array.isArray(data.replies)
                 ? data.replies
                 : [];
+            if (data?.phase) {
+                console.log("CHAT PHASE:", data.phase);
+            } else if (replies[0]?.phase) {
+                console.log("CHAT PHASE:", replies[0].phase);
+            }
 
             setIsTyping(false);
 
@@ -104,6 +109,15 @@ export default function Chat() {
                 replies.forEach((r) => {
                     const botText = r.text || "";
                     const lowerText = botText.toLowerCase();
+                    const showOfferButtons =
+                        botText.includes("Oferta 1") &&
+                        botText.includes("Oferta 2") &&
+                        botText.includes("¿Cuál oferta te interesa");
+                    const showConfirmButton =
+                        botText.toLowerCase().includes("¿confirmas") ||
+                        botText.toLowerCase().includes("confirmas esta opción");
+                    const linkMatch = botText.match(/https?:\/\/[^\s]+/);
+                    const followUpLink = linkMatch ? linkMatch[0] : null;
 
                     // 1️⃣ Mensaje normal del bot
                     newMessages.push({
@@ -112,6 +126,20 @@ export default function Chat() {
                         image: r.image,
                         video: r.video,
                         timestamp: new Date(),
+                        quickReplies: showOfferButtons
+                            ? ["Oferta 1", "Oferta 2"]
+                            : showConfirmButton
+                                ? ["Confirmo!"]
+                                : followUpLink
+                                    ? [
+                                        {
+                                            label: "Ver seguimiento",
+                                            action: "open",
+                                            url: followUpLink,
+                                            tone: "gold",
+                                        },
+                                    ]
+                                : undefined,
                     });
 
                     // 2️⃣ Trigger James (video)

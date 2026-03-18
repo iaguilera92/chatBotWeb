@@ -27,10 +27,11 @@ export async function chatRoutes(app: FastifyInstance) {
             try {
                 const { sessionId, messages, desdeSitioWeb, phase } = request.body;
 
-                const text = await handleChat(sessionId, messages, desdeSitioWeb, phase);
+                const result = await handleChat(sessionId, messages, desdeSitioWeb, phase);
 
                 return {
-                    replies: [{ text }],
+                    phase: result.phase,
+                    replies: [{ text: result.text, phase: result.phase }],
                 };
 
             } catch (error) {
