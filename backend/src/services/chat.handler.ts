@@ -5,7 +5,7 @@ import { OfferResumen, OffersText, capitalizeFirst, checkInsults, formatDate, ch
 import { UiMessage } from "../models/Chats";
 import { s3TrabajoEnRevision } from "../services/trabajos.s3.service";
 import { getBotStatus, saveBotStatus } from "../state/botStatus.store";
-import { BotStatus } from "../state/botStatus.types";
+import { BotPhase, BotStatus } from "../state/botStatus.types";
 
 const SIMULATE_PHONE = process.env.SIMULATE_PHONE === "1";
 
