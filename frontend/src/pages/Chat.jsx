@@ -7,6 +7,16 @@ import { useState } from "react";
 export default function Chat() {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
     const tenant = useTenant();
+    const [sessionId] = useState(() => {
+        const key = "pwbot_session_id";
+        const existing = localStorage.getItem(key);
+        if (existing) return existing;
+        const newId =
+            (crypto?.randomUUID && crypto.randomUUID()) ||
+            `pwbot_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        localStorage.setItem(key, newId);
+        return newId;
+    });
     const [welcomeOpen, setWelcomeOpen] = useState(true);
     const [starting, setStarting] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
@@ -74,7 +84,11 @@ export default function Chat() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ messages: updatedMessages }),
+                body: JSON.stringify({
+                    sessionId,
+                    messages: updatedMessages,
+                    desdeSitioWeb: true,
+                }),
             });
 
             const data = await res.json();
