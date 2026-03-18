@@ -29,6 +29,7 @@ export async function handleChat(
         if (desdeSitioWeb && botStatus.phase === "OFFER_INTRO") {
             botStatus.phase = "OFFER_SELECTION";
         }
+        await saveBotStatus(sessionId, botStatus);
 
         const lastUserMessage = [...messages]
             .reverse()
